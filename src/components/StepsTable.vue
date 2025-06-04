@@ -23,7 +23,7 @@
           <Tag :value="data.type" :severity="data.type === 'move' ? 'info' : 'success'" />
         </template>
         <template #editor="{ data }">
-          <Dropdown 
+          <Select 
             v-model="data.type" 
             :options="typeOptions"
             optionLabel="label"
@@ -64,7 +64,7 @@
       
       <Column field="startLocation" header="Start Location">
         <template #editor="{ data }">
-          <Dropdown 
+          <Select 
             v-model="data.startLocation" 
             :options="locationNames"
             placeholder="Select location"
@@ -78,7 +78,7 @@
           {{ data.type === 'move' ? data.finishLocation : '-' }}
         </template>
         <template #editor="{ data }">
-          <Dropdown 
+          <Select 
             v-if="data.type === 'move'"
             v-model="data.finishLocation" 
             :options="locationNames"
@@ -181,7 +181,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
-import Dropdown from 'primevue/dropdown'
+import Select from 'primevue/select'
 import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'

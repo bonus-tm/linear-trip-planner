@@ -58,7 +58,7 @@
           UTC{{ data.timezone >= 0 ? '+' : '' }}{{ data.timezone }}
         </template>
         <template #editor="{ data }">
-          <Dropdown 
+          <Select 
             v-model="data.timezone" 
             :options="timezoneOptions"
             optionLabel="label"
@@ -117,7 +117,7 @@ import Column from 'primevue/column'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
-import Dropdown from 'primevue/dropdown'
+import Select from 'primevue/select'
 import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
 
