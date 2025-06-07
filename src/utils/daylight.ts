@@ -132,12 +132,12 @@ export function calculateDaylightForRange(
 ): Record<string, DaylightInfo> {
   const result: Record<string, DaylightInfo> = {}
   
-  const start = new Date(startDate)
-  const end = new Date(endDate)
+  // Parse dates using UTC to avoid timezone issues
+  const startParts = startDate.split('-').map(Number)
+  const endParts = endDate.split('-').map(Number)
   
-  // Reset to start of day
-  start.setHours(0, 0, 0, 0)
-  end.setHours(0, 0, 0, 0)
+  const start = new Date(Date.UTC(startParts[0], startParts[1] - 1, startParts[2]))
+  const end = new Date(Date.UTC(endParts[0], endParts[1] - 1, endParts[2]))
   
   const current = new Date(start)
   
@@ -146,7 +146,7 @@ export function calculateDaylightForRange(
     result[dateStr] = calculateDaylight(lat, lng, current, timezone)
     
     // Move to next day
-    current.setDate(current.getDate() + 1)
+    current.setUTCDate(current.getUTCDate() + 1)
   }
   
   return result
