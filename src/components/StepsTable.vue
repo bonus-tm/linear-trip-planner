@@ -1,3 +1,105 @@
+<script lang="ts" setup>
+import {ref} from 'vue'
+import {useAppState} from '../composables/useAppState'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import Select from 'primevue/select'
+import Dialog from 'primevue/dialog'
+import Message from 'primevue/message'
+import Tag from 'primevue/tag'
+import type {Step} from '../types'
+
+const {sortedSteps, locationNames, addStep, updateStep, deleteStep, error} = useAppState()
+
+const deleteDialogVisible = ref(false)
+const stepToDelete = ref('')
+
+const typeOptions = [
+  {label: 'Move', value: 'move'},
+  {label: 'Stay', value: 'stay'}
+]
+
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+
+  // Check if it's a date-only format (no time component)
+  if (dateStr.length === 10 || !dateStr.includes('T')) {
+    return date.toLocaleDateString()
+  }
+
+  return date.toLocaleString()
+}
+
+const getRowClass = (data: Step) => {
+  return data.type === 'move' ? 'move-row' : 'stay-row'
+}
+
+const addNewStep = () => {
+  const lastStep = sortedSteps.value[sortedSteps.value.length - 1]
+
+  // Prefill values based on requirements
+  const newStep: Omit<Step, 'id'> = {
+    type: 'stay',
+    startDate: lastStep ? lastStep.finishDate : new Date().toISOString().slice(0, 16),
+    finishDate: lastStep ? lastStep.finishDate : new Date().toISOString().slice(0, 16),
+    startLocation: lastStep ? (lastStep.type === 'move' ? lastStep.finishLocation! : lastStep.startLocation) : (locationNames.value[0] || ''),
+    description: ''
+  }
+
+  addStep(newStep)
+}
+
+const onCellEditComplete = (event: any) => {
+  const {newData: data, field} = event
+
+  // Validation
+  if (field === 'startDate' || field === 'finishDate') {
+    const start = new Date(data.startDate)
+    const finish = new Date(data.finishDate)
+
+    if (finish < start) {
+      error.value = 'Finish date cannot be earlier than start date'
+      // Revert the change
+      if (field === 'finishDate') {
+        data.finishDate = data.startDate
+      }
+      return
+    }
+  }
+
+  // Clean up fields when changing type
+  if (field === 'type') {
+    if (data.type === 'stay') {
+      delete data.finishLocation
+      delete data.startAirport
+      delete data.finishAirport
+    }
+  }
+
+  // Convert airport codes to uppercase
+  if (field === 'startAirport' || field === 'finishAirport') {
+    data[field] = data[field]?.toUpperCase()
+  }
+
+  // Update step
+  updateStep(data.id, data)
+}
+
+const confirmDelete = (id: string) => {
+  stepToDelete.value = id
+  deleteDialogVisible.value = true
+}
+
+const executeDelete = () => {
+  deleteStep(stepToDelete.value)
+  deleteDialogVisible.value = false
+  stepToDelete.value = ''
+}
+</script>
+
 <template>
   <div class="steps-table">
     <div class="table-header">
@@ -173,108 +275,6 @@
     </Message>
   </div>
 </template>
-
-<script lang="ts" setup>
-import {ref} from 'vue'
-import {useAppState} from '../composables/useAppState'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import Select from 'primevue/select'
-import Dialog from 'primevue/dialog'
-import Message from 'primevue/message'
-import Tag from 'primevue/tag'
-import type {Step} from '../types'
-
-const {sortedSteps, locationNames, addStep, updateStep, deleteStep, error} = useAppState()
-
-const deleteDialogVisible = ref(false)
-const stepToDelete = ref('')
-
-const typeOptions = [
-  {label: 'Move', value: 'move'},
-  {label: 'Stay', value: 'stay'}
-]
-
-const formatDate = (dateStr: string) => {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
-
-  // Check if it's a date-only format (no time component)
-  if (dateStr.length === 10 || !dateStr.includes('T')) {
-    return date.toLocaleDateString()
-  }
-
-  return date.toLocaleString()
-}
-
-const getRowClass = (data: Step) => {
-  return data.type === 'move' ? 'move-row' : 'stay-row'
-}
-
-const addNewStep = () => {
-  const lastStep = sortedSteps.value[sortedSteps.value.length - 1]
-
-  // Prefill values based on requirements
-  const newStep: Omit<Step, 'id'> = {
-    type: 'stay',
-    startDate: lastStep ? lastStep.finishDate : new Date().toISOString().slice(0, 16),
-    finishDate: lastStep ? lastStep.finishDate : new Date().toISOString().slice(0, 16),
-    startLocation: lastStep ? (lastStep.type === 'move' ? lastStep.finishLocation! : lastStep.startLocation) : (locationNames.value[0] || ''),
-    description: ''
-  }
-
-  addStep(newStep)
-}
-
-const onCellEditComplete = (event: any) => {
-  const {newData: data, field} = event
-
-  // Validation
-  if (field === 'startDate' || field === 'finishDate') {
-    const start = new Date(data.startDate)
-    const finish = new Date(data.finishDate)
-
-    if (finish < start) {
-      error.value = 'Finish date cannot be earlier than start date'
-      // Revert the change
-      if (field === 'finishDate') {
-        data.finishDate = data.startDate
-      }
-      return
-    }
-  }
-
-  // Clean up fields when changing type
-  if (field === 'type') {
-    if (data.type === 'stay') {
-      delete data.finishLocation
-      delete data.startAirport
-      delete data.finishAirport
-    }
-  }
-
-  // Convert airport codes to uppercase
-  if (field === 'startAirport' || field === 'finishAirport') {
-    data[field] = data[field]?.toUpperCase()
-  }
-
-  // Update step
-  updateStep(data.id, data)
-}
-
-const confirmDelete = (id: string) => {
-  stepToDelete.value = id
-  deleteDialogVisible.value = true
-}
-
-const executeDelete = () => {
-  deleteStep(stepToDelete.value)
-  deleteDialogVisible.value = false
-  stepToDelete.value = ''
-}
-</script>
 
 <style scoped>
 .steps-table {

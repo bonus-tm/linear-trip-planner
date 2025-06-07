@@ -1,57 +1,3 @@
-<template>
-  <div class="daylight-display">
-    <h2>Daylight Information</h2>
-    
-    <div v-if="Object.keys(daylightData).length === 0" class="no-data">
-      <p>No daylight data available. Add locations and steps to see sunrise/sunset times.</p>
-    </div>
-    
-    <div v-else class="daylight-grid">
-      <Card v-for="(locationData, locationName) in daylightData" :key="locationName" class="location-card">
-        <template #header>
-          <div class="card-header">
-            <h3>{{ locationName }}</h3>
-            <span class="timezone">UTC{{ locations[locationName].timezone >= 0 ? '+' : '' }}{{ locations[locationName].timezone }}</span>
-          </div>
-        </template>
-        
-        <template #content>
-          <div v-if="Object.keys(locationData).length === 0" class="no-dates">
-            No dates assigned to this location
-          </div>
-          
-          <div v-else class="daylight-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Sunrise</th>
-                  <th>Sunset</th>
-                  <th>Daylight Hours</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(daylight, date) in locationData" :key="date">
-                  <td>{{ formatDate(date) }}</td>
-                  <td>
-                    <span v-if="daylight.polar_night" class="polar-night">Polar Night</span>
-                    <span v-else>{{ daylight.sunrise }}</span>
-                  </td>
-                  <td>
-                    <span v-if="daylight.polar_night" class="polar-night">Polar Night</span>
-                    <span v-else>{{ daylight.sunset }}</span>
-                  </td>
-                  <td>{{ calculateDaylightHours(daylight) }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </template>
-      </Card>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useAppState } from '../composables/useAppState'
@@ -122,6 +68,60 @@ const calculateDaylightHours = (daylight: DaylightInfo) => {
   return `${hours}h ${minutes}m`
 }
 </script>
+
+<template>
+  <div class="daylight-display">
+    <h2>Daylight Information</h2>
+
+    <div v-if="Object.keys(daylightData).length === 0" class="no-data">
+      <p>No daylight data available. Add locations and steps to see sunrise/sunset times.</p>
+    </div>
+
+    <div v-else class="daylight-grid">
+      <Card v-for="(locationData, locationName) in daylightData" :key="locationName" class="location-card">
+        <template #header>
+          <div class="card-header">
+            <h3>{{ locationName }}</h3>
+            <span class="timezone">UTC{{ locations[locationName].timezone >= 0 ? '+' : '' }}{{ locations[locationName].timezone }}</span>
+          </div>
+        </template>
+
+        <template #content>
+          <div v-if="Object.keys(locationData).length === 0" class="no-dates">
+            No dates assigned to this location
+          </div>
+
+          <div v-else class="daylight-table">
+            <table>
+              <thead>
+              <tr>
+                <th>Date</th>
+                <th>Sunrise</th>
+                <th>Sunset</th>
+                <th>Daylight Hours</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr v-for="(daylight, date) in locationData" :key="date">
+                <td>{{ formatDate(date) }}</td>
+                <td>
+                  <span v-if="daylight.polar_night" class="polar-night">Polar Night</span>
+                  <span v-else>{{ daylight.sunrise }}</span>
+                </td>
+                <td>
+                  <span v-if="daylight.polar_night" class="polar-night">Polar Night</span>
+                  <span v-else>{{ daylight.sunset }}</span>
+                </td>
+                <td>{{ calculateDaylightHours(daylight) }}</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
+      </Card>
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .daylight-display {
