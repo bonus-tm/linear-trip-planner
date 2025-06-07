@@ -5,50 +5,47 @@
       <Button 
         icon="pi pi-plus" 
         label="Add Location" 
-        @click="addNewLocation"
         size="small"
+        @click="showAddLocationDialog"
       />
     </div>
     
     <DataTable 
       :value="tableData" 
       editMode="cell"
-      @cell-edit-complete="onCellEditComplete"
       responsiveLayout="scroll"
       size="small"
+      @cell-edit-complete="onCellEditComplete"
     >
       <Column field="name" header="Name">
-        <template #editor="{ data }">
-          <InputText v-model="data.name" autofocus />
+        <template #body="{ data }">
+          {{ data.name }}
         </template>
       </Column>
       
-      <Column field="coordinates.lat" header="Latitude">
+      <Column style="width: 24px">
         <template #body="{ data }">
-          {{ data.coordinates.lat }}
-        </template>
-        <template #editor="{ data }">
-          <InputNumber 
-            v-model="data.coordinates.lat" 
-            :min="-90" 
-            :max="90"
-            :maxFractionDigits="6"
-            autofocus
-          />
+          <a 
+            :href="`https://www.google.com/maps/@${data.coordinates.lat},${data.coordinates.lng},11z`"
+            class="map-link"
+            rel="noopener noreferrer"
+            target="_blank"
+            title="Open in Google Maps"
+          >
+            <i class="pi pi-map-marker" style="font-size: 1.2em; color: #007bff;"></i>
+          </a>
         </template>
       </Column>
       
-      <Column field="coordinates.lng" header="Longitude">
+      <Column field="coordinatesString" header="Coordinates">
         <template #body="{ data }">
-          {{ data.coordinates.lng }}
+          {{ data.coordinatesString }}
         </template>
         <template #editor="{ data }">
-          <InputNumber 
-            v-model="data.coordinates.lng" 
-            :min="-180" 
-            :max="180"
-            :maxFractionDigits="6"
+          <InputText 
+            v-model="data.coordinatesString"
             autofocus
+            placeholder="lat, lng (e.g., 51.970710, 5.003546)"
           />
         </template>
       </Column>
@@ -63,7 +60,6 @@
             :options="timezoneOptions"
             optionLabel="label"
             optionValue="value"
-            autofocus
           />
         </template>
       </Column>
@@ -72,28 +68,59 @@
         <template #body="{ data }">
           <Button 
             icon="pi pi-trash" 
-            severity="danger"
-            text
             rounded
-            @click="confirmDelete(data.name)"
+            severity="danger"
             size="small"
+            text
+            @click="confirmDelete(data.name)"
           />
         </template>
       </Column>
     </DataTable>
+
+    <!-- Add Location Dialog -->
+    <Dialog 
+      v-model:visible="addLocationDialogVisible" 
+      :modal="true"
+      :style="{ width: '400px' }"
+      header="Add New Location"
+    >
+      <div class="form-field">
+        <label for="locationName">Location Name</label>
+        <InputText 
+          id="locationName"
+          v-model="newLocationName" 
+          autofocus
+          placeholder="Enter location name"
+          @keyup.enter="createLocation"
+        />
+      </div>
+      <template #footer>
+        <Button 
+          label="Cancel" 
+          text
+          @click="cancelAddLocation"
+        />
+        <Button 
+          :disabled="!newLocationName.trim()"
+          label="Create"
+          @click="createLocation"
+        />
+      </template>
+    </Dialog>
     
     <Dialog 
       v-model:visible="deleteDialogVisible" 
-      header="Confirm Delete" 
       :modal="true"
       :style="{ width: '400px' }"
+      header="Confirm Delete"
     >
       <p>Are you sure you want to delete location "{{ locationToDelete }}"?</p>
       <template #footer>
         <Button 
           label="Cancel" 
-          @click="deleteDialogVisible = false"
           text
+          @click="deleteDialogVisible = false"
         />
         <Button 
           label="Delete" 
@@ -103,13 +130,13 @@
       </template>
     </Dialog>
     
-    <Message v-if="error" severity="error" :closable="true" @close="error = null">
+    <Message v-if="error" :closable="true" severity="error" @close="error = null">
       {{ error }}
     </Message>
   </div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { ref, computed } from 'vue'
 import { useAppState } from '../composables/useAppState'
 import DataTable from 'primevue/datatable'
@@ -125,6 +152,8 @@ const { locations, addLocation, updateLocation, deleteLocation, error } = useApp
 
 const deleteDialogVisible = ref(false)
 const locationToDelete = ref('')
+const addLocationDialogVisible = ref(false)
+const newLocationName = ref('')
 
 // Generate timezone options from -12 to +12
 const timezoneOptions = Array.from({ length: 25 }, (_, i) => ({
@@ -132,48 +161,88 @@ const timezoneOptions = Array.from({ length: 25 }, (_, i) => ({
   value: i - 12
 }))
 
-// Convert locations object to array for DataTable
+// Convert locations object to array for DataTable with coordinatesString
 const tableData = computed(() => 
-  Object.values(locations.value).map(loc => ({
-    ...loc,
-    originalName: loc.name // Keep track of original name for updates
+  Object.values(locations.value).map(location => ({
+    ...location,
+    coordinatesString: `${location.coordinates.lat}, ${location.coordinates.lng}`
   }))
 )
 
-const addNewLocation = () => {
-  const newName = `Location ${Object.keys(locations.value).length + 1}`
-  addLocation({
-    name: newName,
+const showAddLocationDialog = () => {
+  newLocationName.value = ''
+  addLocationDialogVisible.value = true
+}
+
+const cancelAddLocation = () => {
+  addLocationDialogVisible.value = false
+  newLocationName.value = ''
+}
+
+const createLocation = () => {
+  if (!newLocationName.value.trim()) return
+  
+  const success = addLocation({
+    name: newLocationName.value.trim(),
     coordinates: { lat: 0, lng: 0 },
     timezone: 0
   })
+  
+  if (success) {
+    addLocationDialogVisible.value = false
+    newLocationName.value = ''
+  }
 }
 
 const onCellEditComplete = (event: any) => {
-  const { data, field } = event
+  console.log(event)
+  const { newData: data, field } = event
+  console.log('onCellEditComplete', field, data)
   
-  // Validate coordinates
-  if (field === 'coordinates.lat' && (data.coordinates.lat < -90 || data.coordinates.lat > 90)) {
-    error.value = 'Latitude must be between -90 and 90'
-    return
+  // Handle coordinates parsing
+  if (field === 'coordinatesString') {
+    const coordinatesString = data.coordinatesString?.trim()
+    if (!coordinatesString) {
+      error.value = 'Coordinates cannot be empty'
+      return
+    }
+    
+    // Parse comma-separated coordinates
+    const parts = coordinatesString.split(',').map((part: string) => part.trim())
+    if (parts.length !== 2) {
+      error.value = 'Coordinates must be in format "latitude, longitude"'
+      return
+    }
+    
+    const lat = parseFloat(parts[0])
+    const lng = parseFloat(parts[1])
+    
+    if (isNaN(lat) || isNaN(lng)) {
+      error.value = 'Coordinates must be valid numbers'
+      return
+    }
+    
+    // Validate coordinate ranges
+    if (lat < -90 || lat > 90) {
+      error.value = 'Latitude must be between -90 and 90'
+      return
+    }
+    
+    if (lng < -180 || lng > 180) {
+      error.value = 'Longitude must be between -180 and 180'
+      return
+    }
+    
+    // Update the data object with parsed coordinates
+    data.coordinates = { lat, lng }
   }
   
-  if (field === 'coordinates.lng' && (data.coordinates.lng < -180 || data.coordinates.lng > 180)) {
-    error.value = 'Longitude must be between -180 and 180'
-    return
-  }
-  
-  // Update location
-  updateLocation(data.originalName || data.name, {
+  // Update location (name cannot be changed as it's the immutable ID)
+  updateLocation(data.name, {
     name: data.name,
     coordinates: data.coordinates,
     timezone: data.timezone
   })
-  
-  // Update original name if name was changed
-  if (field === 'name') {
-    data.originalName = data.name
-  }
 }
 
 const confirmDelete = (name: string) => {
@@ -202,5 +271,31 @@ const executeDelete = () => {
 
 h2 {
   margin: 0;
+}
+
+.form-field {
+  margin-bottom: 1rem;
+}
+
+.form-field label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.form-field input {
+  width: 100%;
+}
+
+.map-link {
+  display: inline-block;
+  text-decoration: none;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.map-link:hover {
+  background-color: #f0f8ff;
 }
 </style> 

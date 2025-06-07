@@ -27,27 +27,17 @@ export function useAppState() {
     return true
   }
   
-  const updateLocation = (oldName: string, updatedLocation: Omit<LocationsMap[string], 'daylight'>) => {
-    if (oldName !== updatedLocation.name && locations.value[updatedLocation.name]) {
-      error.value = 'Location with this name already exists'
+  const updateLocation = (locationId: string, updatedLocation: Omit<LocationsMap[string], 'daylight'>) => {
+    console.log('update location', locationId, updatedLocation)
+    // Since location names are now immutable IDs, we don't need to handle name changes
+    if (!locations.value[locationId]) {
+      error.value = 'Location not found'
       return false
     }
     
-    // If name changed, update all steps referencing this location
-    if (oldName !== updatedLocation.name) {
-      steps.value = steps.value.map(step => ({
-        ...step,
-        startLocation: step.startLocation === oldName ? updatedLocation.name : step.startLocation,
-        finishLocation: step.finishLocation === oldName ? updatedLocation.name : step.finishLocation
-      }))
-      
-      // Move location to new key
-      delete locations.value[oldName]
-    }
-    
-    locations.value[updatedLocation.name] = {
+    locations.value[locationId] = {
       ...updatedLocation,
-      daylight: locations.value[oldName]?.daylight || {}
+      daylight: locations.value[locationId]?.daylight || {}
     }
     
     error.value = null
