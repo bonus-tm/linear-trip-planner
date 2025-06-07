@@ -143,7 +143,6 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
 import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
@@ -271,6 +270,8 @@ const executeDelete = () => {
 
 h2 {
   margin: 0;
+  color: var(--color-text);
+  transition: color 0.3s ease;
 }
 
 .form-field {
@@ -281,6 +282,8 @@ h2 {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 600;
+  color: var(--color-text);
+  transition: color 0.3s ease;
 }
 
 .form-field input {
@@ -296,6 +299,6 @@ h2 {
 }
 
 .map-link:hover {
-  background-color: #f0f8ff;
+  background-color: var(--color-link-hover);
 }
 </style> 

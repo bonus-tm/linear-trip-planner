@@ -22,8 +22,9 @@ import DaylightDisplay from './components/DaylightDisplay.vue'
 }
 
 h1 {
-  color: #333;
+  color: var(--color-text);
   margin-bottom: 2rem;
   font-family: system-ui, -apple-system, sans-serif;
+  transition: color 0.3s ease;
 }
 </style>

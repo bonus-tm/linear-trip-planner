@@ -290,13 +290,17 @@ const executeDelete = () => {
 
 h2 {
   margin: 0;
+  color: var(--color-text);
+  transition: color 0.3s ease;
 }
 
 :deep(.move-row) {
-  background-color: rgba(59, 130, 246, 0.05);
+  background-color: var(--color-move-row);
+  transition: background-color 0.3s ease;
 }
 
 :deep(.stay-row) {
-  background-color: rgba(34, 197, 94, 0.05);
+  background-color: var(--color-stay-row);
+  transition: background-color 0.3s ease;
 }
 </style> 

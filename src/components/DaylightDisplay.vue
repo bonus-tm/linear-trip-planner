@@ -131,9 +131,10 @@ const calculateDaylightHours = (daylight: DaylightInfo) => {
 .no-data {
   text-align: center;
   padding: 2rem;
-  background-color: #f8f9fa;
+  background-color: var(--color-no-data-bg);
   border-radius: 4px;
-  color: #6c757d;
+  color: var(--color-secondary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .daylight-grid {
@@ -144,7 +145,8 @@ const calculateDaylightHours = (daylight: DaylightInfo) => {
 }
 
 .location-card {
-  background-color: #fff;
+  background-color: var(--color-surface);
+  transition: background-color 0.3s ease;
 }
 
 .card-header {
@@ -156,18 +158,22 @@ const calculateDaylightHours = (daylight: DaylightInfo) => {
 .card-header h3 {
   margin: 0;
   font-size: 1.25rem;
+  color: var(--color-text);
+  transition: color 0.3s ease;
 }
 
 .timezone {
-  color: #6c757d;
+  color: var(--color-secondary);
   font-size: 0.875rem;
+  transition: color 0.3s ease;
 }
 
 .no-dates {
-  color: #6c757d;
+  color: var(--color-secondary);
   font-style: italic;
   text-align: center;
   padding: 1rem;
+  transition: color 0.3s ease;
 }
 
 .daylight-table {
@@ -183,21 +189,27 @@ table {
 th {
   text-align: left;
   padding: 0.5rem;
-  border-bottom: 2px solid #dee2e6;
+  border-bottom: 2px solid var(--color-border);
   font-weight: 600;
+  color: var(--color-text);
+  transition: border-color 0.3s ease, color 0.3s ease;
 }
 
 td {
   padding: 0.5rem;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  transition: border-color 0.3s ease, color 0.3s ease;
 }
 
 tr:hover {
-  background-color: #f8f9fa;
+  background-color: var(--color-hover);
+  transition: background-color 0.2s ease;
 }
 
 .polar-night {
-  color: #dc3545;
+  color: var(--color-polar-night);
   font-style: italic;
+  transition: color 0.3s ease;
 }
 </style> 
