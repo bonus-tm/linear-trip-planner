@@ -11,7 +11,7 @@ import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import type {Step} from '../types'
 
-const {sortedSteps, locationNames, addStep, updateStep, deleteStep, error} = useAppState()
+const {sortedSteps, locationNames, locations, addStep, updateStep, deleteStep, error} = useAppState()
 
 const deleteDialogVisible = ref(false)
 const stepToDelete = ref('')
@@ -40,12 +40,29 @@ const getRowClass = (data: Step) => {
 const addNewStep = () => {
   const lastStep = sortedSteps.value[sortedSteps.value.length - 1]
 
+  // Determine the location for the new step
+  const newLocation = lastStep ? (lastStep.type === 'move' ? lastStep.finishLocation! : lastStep.startLocation) : (locationNames.value[0] || '')
+  
+  // Get the current time in the new step's location timezone
+  let defaultDateTime: string
+  if (lastStep) {
+    // Use the last step's finish date/time as starting point
+    defaultDateTime = lastStep.finishDate
+  } else {
+    // Create new datetime in the target location's timezone
+    const locationTimezone = locations.value[newLocation]?.timezone || 0
+    const now = new Date()
+    // Adjust current time to target location's timezone
+    const localTime = new Date(now.getTime() + (locationTimezone * 60 * 60 * 1000))
+    defaultDateTime = localTime.toISOString().slice(0, 16)
+  }
+
   // Prefill values based on requirements
   const newStep: Omit<Step, 'id'> = {
     type: 'stay',
-    startDate: lastStep ? lastStep.finishDate : new Date().toISOString().slice(0, 16),
-    finishDate: lastStep ? lastStep.finishDate : new Date().toISOString().slice(0, 16),
-    startLocation: lastStep ? (lastStep.type === 'move' ? lastStep.finishLocation! : lastStep.startLocation) : (locationNames.value[0] || ''),
+    startDate: defaultDateTime,
+    finishDate: defaultDateTime,
+    startLocation: newLocation,
     description: ''
   }
 
@@ -55,13 +72,33 @@ const addNewStep = () => {
 const onCellEditComplete = (event: any) => {
   const {newData: data, field} = event
 
-  // Validation
+  // Validation - need to consider timezones for proper date comparison
   if (field === 'startDate' || field === 'finishDate') {
-    const start = new Date(data.startDate)
-    const finish = new Date(data.finishDate)
+    // For timezone-aware comparison, we need to get the locations' timezones
+    const startLocation = locationNames.value.find(name => name === data.startLocation)
+    const finishLocation = data.finishLocation
+    
+    if (!startLocation) {
+      error.value = 'Invalid start location'
+      return
+    }
+    
+    // Helper function to convert local time to UTC
+    const localTimeToUtc = (dateTimeStr: string, timezoneOffset: number): Date => {
+      const localDate = new Date(dateTimeStr)
+      return new Date(localDate.getTime() - (timezoneOffset * 60 * 60 * 1000))
+    }
+    
+    const startTimezone = locations.value[startLocation]?.timezone || 0
+    const endTimezone = data.type === 'move' && finishLocation 
+      ? (locations.value[finishLocation]?.timezone || 0)
+      : startTimezone
+    
+    const startUtc = localTimeToUtc(data.startDate, startTimezone)
+    const finishUtc = localTimeToUtc(data.finishDate, endTimezone)
 
-    if (finish < start) {
-      error.value = 'Finish date cannot be earlier than start date'
+    if (finishUtc < startUtc) {
+      error.value = 'Finish date/time cannot be earlier than start date/time (accounting for timezones)'
       // Revert the change
       if (field === 'finishDate') {
         data.finishDate = data.startDate

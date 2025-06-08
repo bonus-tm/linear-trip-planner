@@ -1,6 +1,23 @@
 import { computed, ref, type Ref } from 'vue'
 import type { LocationsMap, StepsList, Step, DaylightInfo } from '../types'
 
+// Helper function to convert local time to UTC
+function localTimeToUtc(dateTimeStr: string, timezoneOffset: number): Date {
+  const localDate = new Date(dateTimeStr)
+  // Convert timezone offset (hours) to milliseconds and subtract to get UTC
+  return new Date(localDate.getTime() - (timezoneOffset * 60 * 60 * 1000))
+}
+
+// Helper function to get UTC date string from local datetime and timezone
+function getUtcDateString(dateTimeStr: string, timezoneOffset: number): string {
+  return localTimeToUtc(dateTimeStr, timezoneOffset).toISOString().split('T')[0]
+}
+
+// Helper function to get timezone offset for a location
+function getLocationTimezone(locationName: string, locations: LocationsMap): number {
+  return locations[locationName]?.timezone || 0
+}
+
 export interface DayCell {
   date: string
   displayDate: string
@@ -45,19 +62,25 @@ export function useTimelineLayout(
     const dates = new Set<string>()
     
     steps.value.forEach(step => {
-      const startDate = new Date(step.startDate)
-      const endDate = new Date(step.finishDate)
+      // Convert start and end times to UTC for proper date range calculation
+      const startTimezone = getLocationTimezone(step.startLocation, locations.value)
+      const endTimezone = step.type === 'move' && step.finishLocation 
+        ? getLocationTimezone(step.finishLocation, locations.value)
+        : startTimezone
       
-      // Add all dates in the range
-      const current = new Date(startDate)
-      current.setHours(0, 0, 0, 0)
+      const startUtc = localTimeToUtc(step.startDate, startTimezone)
+      const endUtc = localTimeToUtc(step.finishDate, endTimezone)
       
-      const end = new Date(endDate)
-      end.setHours(23, 59, 59, 999)
+      // Add all UTC dates in the range
+      const current = new Date(startUtc)
+      current.setUTCHours(0, 0, 0, 0)
+      
+      const end = new Date(endUtc)
+      end.setUTCHours(23, 59, 59, 999)
       
       while (current <= end) {
         dates.add(current.toISOString().split('T')[0])
-        current.setDate(current.getDate() + 1)
+        current.setUTCDate(current.getUTCDate() + 1)
       }
     })
     
@@ -105,21 +128,29 @@ export function useTimelineLayout(
           if (step.type !== 'stay') return false
           if (step.startLocation !== locationName) return false
           
-          const stepStart = new Date(step.startDate).toISOString().split('T')[0]
-          const stepEnd = new Date(step.finishDate).toISOString().split('T')[0]
+          // For stays, both start and end are in the same location's timezone
+          const timezone = getLocationTimezone(step.startLocation, locations.value)
+          const stepStartUtc = getUtcDateString(step.startDate, timezone)
+          const stepEndUtc = getUtcDateString(step.finishDate, timezone)
           
-          return dateStr >= stepStart && dateStr <= stepEnd
+          return dateStr >= stepStartUtc && dateStr <= stepEndUtc
         })
         
         // Check if there's a move involving this location on this day
         const hasMove = steps.value.some(step => {
           if (step.type !== 'move') return false
           
-          const stepStart = new Date(step.startDate).toISOString().split('T')[0]
-          const stepEnd = new Date(step.finishDate).toISOString().split('T')[0]
+          // For moves, start time is in start location's timezone, end time is in end location's timezone
+          const startTimezone = getLocationTimezone(step.startLocation, locations.value)
+          const endTimezone = step.finishLocation 
+            ? getLocationTimezone(step.finishLocation, locations.value)
+            : startTimezone
           
-          return (step.startLocation === locationName && dateStr >= stepStart && dateStr <= stepEnd) ||
-                 (step.finishLocation === locationName && dateStr >= stepStart && dateStr <= stepEnd)
+          const stepStartUtc = getUtcDateString(step.startDate, startTimezone)
+          const stepEndUtc = getUtcDateString(step.finishDate, endTimezone)
+          
+          return (step.startLocation === locationName && dateStr >= stepStartUtc && dateStr <= stepEndUtc) ||
+                 (step.finishLocation === locationName && dateStr >= stepStartUtc && dateStr <= stepEndUtc)
         })
         
         const isEmpty = !hasStay && !hasMove
@@ -157,21 +188,27 @@ export function useTimelineLayout(
       
       if (startLocationIndex === -1 || endLocationIndex === -1) return
       
-      const startDate = new Date(step.startDate)
-      const endDate = new Date(step.finishDate)
+      // Convert local times to UTC for consistent positioning
+      const startTimezone = getLocationTimezone(step.startLocation, locations.value)
+      const endTimezone = step.finishLocation 
+        ? getLocationTimezone(step.finishLocation, locations.value)
+        : startTimezone
       
-      // Ensure we get the correct date strings for comparison
-      const startDateStr = startDate.toISOString().split('T')[0]
-      const endDateStr = endDate.toISOString().split('T')[0]
+      const startUtc = localTimeToUtc(step.startDate, startTimezone)
+      const endUtc = localTimeToUtc(step.finishDate, endTimezone)
+      
+      // Get UTC date strings for day positioning
+      const startDateStr = startUtc.toISOString().split('T')[0]
+      const endDateStr = endUtc.toISOString().split('T')[0]
       
       const startDay = dateRange.value.indexOf(startDateStr)
       const endDay = dateRange.value.indexOf(endDateStr)
       
       if (startDay === -1 || endDay === -1) return
       
-      // Calculate time within day (minutes from midnight)
-      const startTime = startDate.getHours() * 60 + startDate.getMinutes()
-      const endTime = endDate.getHours() * 60 + endDate.getMinutes()
+      // Calculate time within day (minutes from UTC midnight)
+      const startTime = startUtc.getUTCHours() * 60 + startUtc.getUTCMinutes()
+      const endTime = endUtc.getUTCHours() * 60 + endUtc.getUTCMinutes()
       
       result.push({
         id: step.id,

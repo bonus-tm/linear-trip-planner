@@ -94,12 +94,25 @@ export function useAppState() {
     return true
   }
   
+  // Helper function to convert local time to UTC for comparison
+  const localTimeToUtc = (dateTimeStr: string, timezoneOffset: number): Date => {
+    const localDate = new Date(dateTimeStr)
+    return new Date(localDate.getTime() - (timezoneOffset * 60 * 60 * 1000))
+  }
+
   // Computed values
   const locationNames = computed(() => Object.keys(locations.value))
   const sortedSteps = computed(() => 
-    [...steps.value].sort((a, b) => 
-      new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-    )
+    [...steps.value].sort((a, b) => {
+      // Convert start dates to UTC for proper sorting
+      const aTimezone = locations.value[a.startLocation]?.timezone || 0
+      const bTimezone = locations.value[b.startLocation]?.timezone || 0
+      
+      const aUtc = localTimeToUtc(a.startDate, aTimezone)
+      const bUtc = localTimeToUtc(b.startDate, bTimezone)
+      
+      return aUtc.getTime() - bUtc.getTime()
+    })
   )
   
   // Daylight calculation function
@@ -112,18 +125,47 @@ export function useAppState() {
     
     steps.value.forEach(step => {
       if (step.startLocation === locationName || step.finishLocation === locationName) {
-        // Extract date part only
-        const startDate = step.startDate.split('T')[0]
-        const finishDate = step.finishDate.split('T')[0]
+        // For timezone-aware date calculation, we need to consider:
+        // - Start location timezone for start date
+        // - End location timezone for end date (moves) or start location timezone (stays)
+        let startDateStr: string, finishDateStr: string
         
-        // Add all dates in range
-        const start = new Date(startDate)
-        const end = new Date(finishDate)
+        if (step.startLocation === locationName) {
+          // This location is the start location
+          const startTimezone = location.timezone
+          const startUtc = localTimeToUtc(step.startDate, startTimezone)
+          startDateStr = startUtc.toISOString().split('T')[0]
+          
+          if (step.type === 'stay') {
+            // For stays, end is also in the same timezone
+            const finishUtc = localTimeToUtc(step.finishDate, startTimezone)
+            finishDateStr = finishUtc.toISOString().split('T')[0]
+          } else {
+            // For moves, end might be in different timezone, but we use the date range
+            const finishTimezone = step.finishLocation ? (locations.value[step.finishLocation]?.timezone || 0) : startTimezone
+            const finishUtc = localTimeToUtc(step.finishDate, finishTimezone)
+            finishDateStr = finishUtc.toISOString().split('T')[0]
+          }
+        } else {
+          // This location is the finish location (only for moves)
+          const endTimezone = location.timezone
+          const startTimezone = locations.value[step.startLocation]?.timezone || 0
+          
+          const startUtc = localTimeToUtc(step.startDate, startTimezone)
+          const finishUtc = localTimeToUtc(step.finishDate, endTimezone)
+          
+          startDateStr = startUtc.toISOString().split('T')[0]
+          finishDateStr = finishUtc.toISOString().split('T')[0]
+        }
+        
+        // Add all dates in range (in UTC)
+        const start = new Date(startDateStr + 'T00:00:00Z')
+        const end = new Date(finishDateStr + 'T00:00:00Z')
         const current = new Date(start)
         
         while (current <= end) {
           dateRanges.add(current.toISOString().split('T')[0])
-          current.setDate(current.getDate() + 1)
+          current.setUTCDate(current.getUTCDate() + 1)
         }
       }
     })
@@ -167,16 +209,42 @@ export function useAppState() {
       const location = locations.value[locationName]
       const usedDates = new Set<string>()
       
-      // Collect all dates where this location is used
+      // Collect all dates where this location is used (timezone-aware)
       steps.value.forEach(step => {
         if (step.startLocation === locationName || step.finishLocation === locationName) {
-          const start = new Date(step.startDate.split('T')[0])
-          const end = new Date(step.finishDate.split('T')[0])
+          let startDateStr: string, finishDateStr: string
+          
+          if (step.startLocation === locationName) {
+            const startTimezone = location.timezone
+            const startUtc = localTimeToUtc(step.startDate, startTimezone)
+            startDateStr = startUtc.toISOString().split('T')[0]
+            
+            if (step.type === 'stay') {
+              const finishUtc = localTimeToUtc(step.finishDate, startTimezone)
+              finishDateStr = finishUtc.toISOString().split('T')[0]
+            } else {
+              const finishTimezone = step.finishLocation ? (locations.value[step.finishLocation]?.timezone || 0) : startTimezone
+              const finishUtc = localTimeToUtc(step.finishDate, finishTimezone)
+              finishDateStr = finishUtc.toISOString().split('T')[0]
+            }
+          } else {
+            const endTimezone = location.timezone
+            const startTimezone = locations.value[step.startLocation]?.timezone || 0
+            
+            const startUtc = localTimeToUtc(step.startDate, startTimezone)
+            const finishUtc = localTimeToUtc(step.finishDate, endTimezone)
+            
+            startDateStr = startUtc.toISOString().split('T')[0]
+            finishDateStr = finishUtc.toISOString().split('T')[0]
+          }
+          
+          const start = new Date(startDateStr + 'T00:00:00Z')
+          const end = new Date(finishDateStr + 'T00:00:00Z')
           const current = new Date(start)
           
           while (current <= end) {
             usedDates.add(current.toISOString().split('T')[0])
-            current.setDate(current.getDate() + 1)
+            current.setUTCDate(current.getUTCDate() + 1)
           }
         }
       })

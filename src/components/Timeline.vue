@@ -52,16 +52,24 @@ const getTimeLabels = (move: any) => {
   const endLocationY = move.endLocationIndex * totalRowHeight + rowHeight
   const rectangleCenterY = (startLocationY + endLocationY) / 2
   
+  // Get the original local times for display
+  const step = move.step
+  const startDate = new Date(step.startDate)
+  const endDate = new Date(step.finishDate)
+  
+  const startLocalTime = startDate.getHours() * 60 + startDate.getMinutes()
+  const endLocalTime = endDate.getHours() * 60 + endDate.getMinutes()
+  
   return {
     start: {
-      left: `${startX - 60}px`,
+      left: `${startX - 10}px`,
       top: `${rectangleCenterY - 10}px`,
-      time: formatTime(move.startTime)
+      time: formatTime(startLocalTime)
     },
     end: {
       left: `${endX + 10}px`,
       top: `${rectangleCenterY - 10}px`,
-      time: formatTime(move.endTime)
+      time: formatTime(endLocalTime)
     }
   }
 }
@@ -319,7 +327,6 @@ const getTimeLabels = (move: any) => {
   position: absolute;
   background-color: var(--color-move-rectangle);
   border: 1px solid var(--color-move-rectangle-border);
-  border-radius: 4px;
   transition: background-color 0.3s ease, border-color 0.3s ease;
   z-index: 1;
 }
@@ -331,13 +338,10 @@ const getTimeLabels = (move: any) => {
 
 .time-label {
   position: absolute;
-  background-color: var(--color-surface);
   color: var(--color-text);
   font-size: 0.75rem;
   font-weight: 500;
   padding: 0.125rem 0.25rem;
-  border-radius: 2px;
-  border: 1px solid var(--color-border);
   white-space: nowrap;
   z-index: 3;
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
