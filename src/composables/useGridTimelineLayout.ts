@@ -49,7 +49,7 @@ export interface TimelineLayout {
   gridCols: number
 }
 
-export function useTimelineLayout(
+export function useGridTimelineLayout(
   locations: Ref<LocationsMap>,
   steps: Ref<StepsList>
 ) {

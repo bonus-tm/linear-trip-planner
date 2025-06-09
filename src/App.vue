@@ -2,7 +2,7 @@
 import LocationsTable from './components/LocationsTable.vue'
 import StepsTable from './components/StepsTable.vue'
 import DaylightDisplay from './components/DaylightDisplay.vue'
-import Timeline from './components/Timeline.vue'
+import GridTimeline from './components/GridTimeline.vue'
 </script>
 
 <template>
@@ -11,7 +11,7 @@ import Timeline from './components/Timeline.vue'
     
     <LocationsTable />
     <StepsTable />
-    <Timeline />
+    <GridTimeline />
     <DaylightDisplay />
   </div>
 </template>

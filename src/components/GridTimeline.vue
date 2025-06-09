@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useAppState } from '../composables/useAppState'
-import { useTimelineLayout } from '../composables/useTimelineLayout'
+import { useGridTimelineLayout } from '../composables/useGridTimelineLayout.ts'
 import Card from 'primevue/card'
 
 const { locations, steps } = useAppState()
@@ -12,7 +12,7 @@ const {
   getMoveRectangleStyle, 
   getCellDimensions,
   formatTime 
-} = useTimelineLayout(locations, steps)
+} = useGridTimelineLayout(locations, steps)
 
 const gridRef = ref<HTMLElement>()
 const cellDimensions = ref({ width: 120, height: 20 })
