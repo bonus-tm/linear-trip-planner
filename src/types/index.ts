@@ -16,6 +16,8 @@ export interface Step {
   type: 'move' | 'stay';
   startDate: string; // ISO datetime or date
   finishDate: string;
+  startTimestamp: number;
+  finishTimestamp: number;
   startLocation: string; // location name
   finishLocation?: string; // only for 'move' type
   startAirport?: string; // optional and only for 'move' type, 3 letters

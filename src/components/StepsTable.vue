@@ -1,60 +1,63 @@
 <script lang="ts" setup>
-import {ref} from 'vue'
-import {useAppState} from '../composables/useAppState'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import Select from 'primevue/select'
-import Dialog from 'primevue/dialog'
-import Message from 'primevue/message'
-import Tag from 'primevue/tag'
-import type {Step} from '../types'
+import {ref} from 'vue';
+import {useAppState} from '../composables/useAppState';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Button from 'primevue/button';
+import InputText from 'primevue/inputtext';
+import Select from 'primevue/select';
+import Dialog from 'primevue/dialog';
+import Message from 'primevue/message';
+import Tag from 'primevue/tag';
+import type {Step} from '../types';
+import {formatISOWithTZ, formatTZ} from '../utils/datetime';
 
-const {sortedSteps, locationNames, locations, addStep, updateStep, deleteStep, error} = useAppState()
+const {sortedSteps, locationNames, locations, addStep, updateStep, deleteStep, error} = useAppState();
 
-const deleteDialogVisible = ref(false)
-const stepToDelete = ref('')
+const deleteDialogVisible = ref(false);
+const stepToDelete = ref('');
 
 const typeOptions = [
   {label: 'Move', value: 'move'},
-  {label: 'Stay', value: 'stay'}
-]
+  {label: 'Stay', value: 'stay'},
+];
 
 const formatDate = (dateStr: string) => {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
 
   // Check if it's a date-only format (no time component)
   if (dateStr.length === 10 || !dateStr.includes('T')) {
-    return date.toLocaleDateString()
+    return date.toLocaleDateString();
   }
 
-  return date.toLocaleString()
-}
+  return date.toLocaleString();
+};
 
 const getRowClass = (data: Step) => {
-  return data.type === 'move' ? 'move-row' : 'stay-row'
-}
+  return data.type === 'move' ? 'move-row' : 'stay-row';
+};
 
 const addNewStep = () => {
-  const lastStep = sortedSteps.value[sortedSteps.value.length - 1]
+  const lastStep = sortedSteps.value[sortedSteps.value.length - 1];
 
   // Determine the location for the new step
-  const newLocation = lastStep ? (lastStep.type === 'move' ? lastStep.finishLocation! : lastStep.startLocation) : (locationNames.value[0] || '')
-  
+  const newLocation = lastStep
+      ? (lastStep.type === 'move' ? lastStep.finishLocation! : lastStep.startLocation)
+      : (locationNames.value[0] || '');
+
   // Get the current time in the new step's location timezone
-  let defaultDateTime: string
+  let defaultDateTime: string;
+  let defaultTimestamp: number;
   if (lastStep) {
     // Use the last step's finish date/time as starting point
-    defaultDateTime = lastStep.finishDate
+    defaultDateTime = lastStep.finishDate;
+    defaultTimestamp = lastStep.finishTimestamp;
   } else {
     // Create new datetime in the target location's timezone
-    const locationTimezone = locations.value[newLocation]?.timezone || 0
-    const now = new Date()
-    // Adjust current time to target location's timezone
-    const localTime = new Date(now.getTime() + (locationTimezone * 60 * 60 * 1000))
-    defaultDateTime = localTime.toISOString().slice(0, 16)
+    const locationTimezone = locations.value[newLocation]?.timezone || 0;
+    defaultTimestamp = Date.now();
+    defaultDateTime = formatISOWithTZ(defaultTimestamp, locationTimezone);
   }
 
   // Prefill values based on requirements
@@ -62,79 +65,54 @@ const addNewStep = () => {
     type: 'stay',
     startDate: defaultDateTime,
     finishDate: defaultDateTime,
+    startTimestamp: defaultTimestamp,
+    finishTimestamp: defaultTimestamp,
     startLocation: newLocation,
-    description: ''
-  }
+    description: '',
+  };
 
-  addStep(newStep)
-}
+  addStep(newStep);
+};
 
 const onCellEditComplete = (event: any) => {
-  const {newData: data, field} = event
+  const {newData, field} = event;
 
   // Validation - need to consider timezones for proper date comparison
-  if (field === 'startDate' || field === 'finishDate') {
-    // For timezone-aware comparison, we need to get the locations' timezones
-    const startLocation = locationNames.value.find(name => name === data.startLocation)
-    const finishLocation = data.finishLocation
-    
-    if (!startLocation) {
-      error.value = 'Invalid start location'
-      return
-    }
-    
-    // Helper function to convert local time to UTC
-    const localTimeToUtc = (dateTimeStr: string, timezoneOffset: number): Date => {
-      const localDate = new Date(dateTimeStr)
-      return new Date(localDate.getTime() - (timezoneOffset * 60 * 60 * 1000))
-    }
-    
-    const startTimezone = locations.value[startLocation]?.timezone || 0
-    const endTimezone = data.type === 'move' && finishLocation 
-      ? (locations.value[finishLocation]?.timezone || 0)
-      : startTimezone
-    
-    const startUtc = localTimeToUtc(data.startDate, startTimezone)
-    const finishUtc = localTimeToUtc(data.finishDate, endTimezone)
+  if (['startDate', 'finishDate', 'startLocation', 'finishLocation'].includes(field)) {
+    const startTimezone = locations.value[newData.startLocation]?.timezone || 0;
+    const finishTimezone = newData.type === 'move' && newData.finishLocation
+        ? (locations.value[newData.finishLocation]?.timezone || 0)
+        : startTimezone;
 
-    if (finishUtc < startUtc) {
-      error.value = 'Finish date/time cannot be earlier than start date/time (accounting for timezones)'
-      // Revert the change
-      if (field === 'finishDate') {
-        data.finishDate = data.startDate
-      }
-      return
-    }
-  }
+    const startTimestamp = new Date(`${newData.startDate}${formatTZ(startTimezone)}`).getTime();
+    const finishTimestamp = new Date(`${newData.finishDate}${formatTZ(finishTimezone)}`).getTime();
 
-  // Clean up fields when changing type
-  if (field === 'type') {
-    if (data.type === 'stay') {
-      delete data.finishLocation
-      delete data.startAirport
-      delete data.finishAirport
+    if (finishTimestamp < startTimestamp) {
+      error.value = 'Finish date/time cannot be earlier than start date/time (accounting for timezones)';
+      // Do not apply the change
+      return;
     }
   }
 
   // Convert airport codes to uppercase
   if (field === 'startAirport' || field === 'finishAirport') {
-    data[field] = data[field]?.toUpperCase()
+    newData[field] = newData[field]?.toUpperCase();
   }
 
   // Update step
-  updateStep(data.id, data)
-}
+  updateStep(newData.id, newData);
+};
 
 const confirmDelete = (id: string) => {
-  stepToDelete.value = id
-  deleteDialogVisible.value = true
-}
+  stepToDelete.value = id;
+  deleteDialogVisible.value = true;
+};
 
 const executeDelete = () => {
-  deleteStep(stepToDelete.value)
-  deleteDialogVisible.value = false
-  stepToDelete.value = ''
-}
+  deleteStep(stepToDelete.value);
+  deleteDialogVisible.value = false;
+  stepToDelete.value = '';
+};
 </script>
 
 <template>
