@@ -9,7 +9,7 @@ export function calculateDaylight(
   lng: number,
   date: Date,
   timezone: number
-): DaylightInfo {
+): DaylightInfo     {
   // Julian day number
   const julianDay = getJulianDay(date)
   

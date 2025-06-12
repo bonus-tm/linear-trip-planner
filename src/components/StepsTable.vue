@@ -86,12 +86,15 @@ const onCellEditComplete = (event: any) => {
 
     const startTimestamp = new Date(`${newData.startDate}${formatTZ(startTimezone)}`).getTime();
     const finishTimestamp = new Date(`${newData.finishDate}${formatTZ(finishTimezone)}`).getTime();
+    console.log([startTimestamp, finishTimestamp]);
 
     if (finishTimestamp < startTimestamp) {
       error.value = 'Finish date/time cannot be earlier than start date/time (accounting for timezones)';
       // Do not apply the change
       return;
     }
+    newData.startTimestamp = startTimestamp;
+    newData.finishTimestamp = finishTimestamp;
   }
 
   // Convert airport codes to uppercase
@@ -99,6 +102,7 @@ const onCellEditComplete = (event: any) => {
     newData[field] = newData[field]?.toUpperCase();
   }
 
+  console.log(newData);
   // Update step
   updateStep(newData.id, newData);
 };

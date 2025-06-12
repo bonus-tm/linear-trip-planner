@@ -1,24 +1,23 @@
 <script setup lang="ts">
-import LocationsTable from './components/LocationsTable.vue'
-import StepsTable from './components/StepsTable.vue'
-import DaylightDisplay from './components/DaylightDisplay.vue'
-import GridTimeline from './components/GridTimeline.vue'
+import LocationsTable from './components/LocationsTable.vue';
+import StepsTable from './components/StepsTable.vue';
+import DaylightDisplay from './components/DaylightDisplay.vue';
+import Timeline from './components/Timeline.vue';
 </script>
 
 <template>
   <div class="app-container">
     <h1>Travel Itinerary Planner</h1>
-    
-    <LocationsTable />
-    <StepsTable />
-    <GridTimeline />
-    <DaylightDisplay />
+
+    <LocationsTable/>
+    <StepsTable/>
+    <Timeline/>
+    <DaylightDisplay/>
   </div>
 </template>
 
 <style scoped>
 .app-container {
-  max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
 }
