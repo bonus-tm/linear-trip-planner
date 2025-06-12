@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type {TimelineLocation} from '../types';
+import {formatTZ} from '../utils/datetime';
 import DayBlock from './DayBlock.vue';
-import {formatTZ} from '../utils/datetime.ts';
 
 defineProps<{ location: TimelineLocation }>();
 </script>
@@ -13,31 +13,25 @@ defineProps<{ location: TimelineLocation }>();
       GMT{{ formatTZ(location.timezone) }}
     </div>
   </div>
-  <div :style="{top: location.top}" class="timeline-location">
-    <DayBlock v-for="day in location.days" :key="day.id" :day="day"/>
-  </div>
+  <DayBlock v-for="day in location.days" :key="day.id" :day="day"/>
 </template>
 
 <style scoped>
-.timeline-location {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  z-index: 1;
-}
-
 .location-name {
-  position: absolute;
+  position: sticky;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   align-items: flex-start;
   transition: color 0.3s ease;
   font-weight: 500;
+  background-color: var(--color-label-bg);
   color: var(--color-text);
   font-size: 1rem;
   line-height: 1.1;
-  z-index: 1;
+  z-index: 20;
+  width: fit-content;
+  padding: 0 1rem 0.5rem 0;
 
   .timezone {
     font-size: 0.625rem;

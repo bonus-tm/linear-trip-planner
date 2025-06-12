@@ -10,7 +10,7 @@ import Dialog from 'primevue/dialog';
 import Message from 'primevue/message';
 import Tag from 'primevue/tag';
 import type {Step} from '../types';
-import {formatISOWithTZ, formatTZ} from '../utils/datetime';
+import {formatHumanDateTime, formatISOWithTZ, formatTZ} from '../utils/datetime';
 
 const {sortedSteps, locationNames, locations, addStep, updateStep, deleteStep, error} = useAppState();
 
@@ -22,18 +22,6 @@ const typeOptions = [
   {label: 'Stay', value: 'stay'},
 ];
 
-const formatDate = (dateStr: string) => {
-  if (!dateStr) return '';
-  const date = new Date(dateStr);
-
-  // Check if it's a date-only format (no time component)
-  if (dateStr.length === 10 || !dateStr.includes('T')) {
-    return date.toLocaleDateString();
-  }
-
-  return date.toLocaleString();
-};
-
 const getRowClass = (data: Step) => {
   return data.type === 'move' ? 'move-row' : 'stay-row';
 };
@@ -43,8 +31,8 @@ const addNewStep = () => {
 
   // Determine the location for the new step
   const newLocation = lastStep
-      ? (lastStep.type === 'move' ? lastStep.finishLocation! : lastStep.startLocation)
-      : (locationNames.value[0] || '');
+    ? (lastStep.type === 'move' ? lastStep.finishLocation! : lastStep.startLocation)
+    : (locationNames.value[0] || '');
 
   // Get the current time in the new step's location timezone
   let defaultDateTime: string;
@@ -81,8 +69,8 @@ const onCellEditComplete = (event: any) => {
   if (['startDate', 'finishDate', 'startLocation', 'finishLocation'].includes(field)) {
     const startTimezone = locations.value[newData.startLocation]?.timezone || 0;
     const finishTimezone = newData.type === 'move' && newData.finishLocation
-        ? (locations.value[newData.finishLocation]?.timezone || 0)
-        : startTimezone;
+      ? (locations.value[newData.finishLocation]?.timezone || 0)
+      : startTimezone;
 
     const startTimestamp = new Date(`${newData.startDate}${formatTZ(startTimezone)}`).getTime();
     const finishTimestamp = new Date(`${newData.finishDate}${formatTZ(finishTimezone)}`).getTime();
@@ -124,20 +112,20 @@ const executeDelete = () => {
     <div class="table-header">
       <h2>Steps</h2>
       <Button
-          icon="pi pi-plus"
-          label="Add Step"
-          size="small"
-          @click="addNewStep"
+        icon="pi pi-plus"
+        label="Add Step"
+        size="small"
+        @click="addNewStep"
       />
     </div>
 
     <DataTable
-        :rowClass="getRowClass"
-        :value="sortedSteps"
-        editMode="cell"
-        responsiveLayout="scroll"
-        size="small"
-        @cell-edit-complete="onCellEditComplete"
+      :rowClass="getRowClass"
+      :value="sortedSteps"
+      editMode="cell"
+      responsiveLayout="scroll"
+      size="small"
+      @cell-edit-complete="onCellEditComplete"
     >
       <Column field="type" header="Type" style="width: 100px">
         <template #body="{ data }">
@@ -145,40 +133,40 @@ const executeDelete = () => {
         </template>
         <template #editor="{ data }">
           <Select
-              v-model="data.type"
-              :options="typeOptions"
-              autofocus
-              optionLabel="label"
-              optionValue="value"
+            v-model="data.type"
+            :options="typeOptions"
+            autofocus
+            optionLabel="label"
+            optionValue="value"
           />
         </template>
       </Column>
 
       <Column field="startDate" header="Start Date/Time">
         <template #body="{ data }">
-          {{ formatDate(data.startDate) }}
+          {{ formatHumanDateTime(data.startDate) }}
         </template>
         <template #editor="{ data }">
           <InputText
-              v-model="data.startDate"
-              :step="data.type === 'move' ? 60 : undefined"
-              autofocus
-              type="datetime-local"
+            v-model="data.startDate"
+            :step="data.type === 'move' ? 60 : undefined"
+            autofocus
+            type="datetime-local"
           />
         </template>
       </Column>
 
       <Column field="finishDate" header="Finish Date/Time">
         <template #body="{ data }">
-          {{ formatDate(data.finishDate) }}
+          {{ formatHumanDateTime(data.finishDate) }}
         </template>
         <template #editor="{ data }">
           <InputText
-              v-model="data.finishDate"
-              :min="data.startDate"
-              :step="data.type === 'move' ? 60 : undefined"
-              autofocus
-              type="datetime-local"
+            v-model="data.finishDate"
+            :min="data.startDate"
+            :step="data.type === 'move' ? 60 : undefined"
+            autofocus
+            type="datetime-local"
           />
         </template>
       </Column>
@@ -186,10 +174,10 @@ const executeDelete = () => {
       <Column field="startLocation" header="Start Location">
         <template #editor="{ data }">
           <Select
-              v-model="data.startLocation"
-              :options="locationNames"
-              autofocus
-              placeholder="Select location"
+            v-model="data.startLocation"
+            :options="locationNames"
+            autofocus
+            placeholder="Select location"
           />
         </template>
       </Column>
@@ -200,11 +188,11 @@ const executeDelete = () => {
         </template>
         <template #editor="{ data }">
           <Select
-              v-if="data.type === 'move'"
-              v-model="data.finishLocation"
-              :options="locationNames"
-              autofocus
-              placeholder="Select location"
+            v-if="data.type === 'move'"
+            v-model="data.finishLocation"
+            :options="locationNames"
+            autofocus
+            placeholder="Select location"
           />
           <span v-else>-</span>
         </template>
@@ -216,12 +204,12 @@ const executeDelete = () => {
         </template>
         <template #editor="{ data }">
           <InputText
-              v-if="data.type === 'move'"
-              v-model="data.startAirport"
-              :maxlength="3"
-              autofocus
-              placeholder="XXX"
-              style="text-transform: uppercase"
+            v-if="data.type === 'move'"
+            v-model="data.startAirport"
+            :maxlength="3"
+            autofocus
+            placeholder="XXX"
+            style="text-transform: uppercase"
           />
           <span v-else>-</span>
         </template>
@@ -233,12 +221,12 @@ const executeDelete = () => {
         </template>
         <template #editor="{ data }">
           <InputText
-              v-if="data.type === 'move'"
-              v-model="data.finishAirport"
-              :maxlength="3"
-              autofocus
-              placeholder="XXX"
-              style="text-transform: uppercase"
+            v-if="data.type === 'move'"
+            v-model="data.finishAirport"
+            :maxlength="3"
+            autofocus
+            placeholder="XXX"
+            style="text-transform: uppercase"
           />
           <span v-else>-</span>
         </template>
@@ -247,9 +235,9 @@ const executeDelete = () => {
       <Column field="description" header="Description">
         <template #editor="{ data }">
           <InputText
-              v-model="data.description"
-              autofocus
-              placeholder="Optional description"
+            v-model="data.description"
+            autofocus
+            placeholder="Optional description"
           />
         </template>
       </Column>
@@ -257,34 +245,34 @@ const executeDelete = () => {
       <Column header="Actions" style="width: 80px">
         <template #body="{ data }">
           <Button
-              icon="pi pi-trash"
-              rounded
-              severity="danger"
-              size="small"
-              text
-              @click="confirmDelete(data.id)"
+            icon="pi pi-trash"
+            rounded
+            severity="danger"
+            size="small"
+            text
+            @click="confirmDelete(data.id)"
           />
         </template>
       </Column>
     </DataTable>
 
     <Dialog
-        v-model:visible="deleteDialogVisible"
-        :modal="true"
-        :style="{ width: '400px' }"
-        header="Confirm Delete"
+      v-model:visible="deleteDialogVisible"
+      :modal="true"
+      :style="{ width: '400px' }"
+      header="Confirm Delete"
     >
       <p>Are you sure you want to delete this step?</p>
       <template #footer>
         <Button
-            label="Cancel"
-            text
-            @click="deleteDialogVisible = false"
+          label="Cancel"
+          text
+          @click="deleteDialogVisible = false"
         />
         <Button
-            label="Delete"
-            severity="danger"
-            @click="executeDelete"
+          label="Delete"
+          severity="danger"
+          @click="executeDelete"
         />
       </template>
     </Dialog>

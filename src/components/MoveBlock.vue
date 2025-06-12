@@ -27,9 +27,8 @@ defineProps<{ move: MoveBlock }>();
   cursor: pointer;
 }
 
-.move-rectangle:hover {
+.timeline-move-rectangle:hover {
   background-color: var(--color-move-rectangle-hover);
-  z-index: 6;
 }
 
 .time-label {

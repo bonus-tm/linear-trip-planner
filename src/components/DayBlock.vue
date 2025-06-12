@@ -6,7 +6,7 @@ defineProps<{ day: DayBlock }>();
 
 <template>
   <div :class="{empty: day.isEmpty}" :style="day.style" class="day-block">
-    <div v-if="!day.isEmpty" :style="day.daylightStyle" class="daylight-bar" />
+    <div :style="day.daylightStyle" class="daylight-bar" />
     <div
       v-if="day.daylight?.polar_night && !day.isEmpty"
       class="polar-night-indicator"
@@ -32,6 +32,9 @@ defineProps<{ day: DayBlock }>();
     background-color: var(--color-surface);
     border: 1px dashed var(--color-border);
     transition: background-color 0.3s ease, border-color 0.3s ease;
+    .daylight-bar{
+      background-color: var(--color-daylight-on-empty-day);
+    }
   }
 }
 

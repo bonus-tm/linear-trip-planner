@@ -9,8 +9,9 @@ import type {
   TimelineLayout,
   TimelineLocation,
 } from '../types';
-import {formatDuration, getDatesBetween, getDayBeginTimestamp} from '../utils/datetime.ts';
-import {convertPositionToStyle} from '../utils/style.ts';
+import {formatDuration, getDatesBetween, getDayBeginTimestamp} from '../utils/datetime';
+import {convertPositionToStyle} from '../utils/style';
+import {calculateDaylight} from '../utils/daylight.ts';
 
 // Constants
 const LAYOUT_PADDING_Y = 30;
@@ -131,6 +132,8 @@ export function useTimelineLayout(
       const labelPosition: Position = {
         top: locationTop,
         left: 0,
+        // width: LOCATION_LABEL_WIDTH,
+        // height: LOCATION_HEIGHT + LOCATIONS_GAP,
       };
       const locationTimeline: TimelineLocation = {
         name: locationName,
@@ -194,10 +197,13 @@ export function useTimelineLayout(
           width: DAY_WIDTH,
           height: LOCATION_HEIGHT - 2,
         };
-        let daylightStyle: CssStyle = {};
-        if (location?.daylight[date]) {
-          daylightStyle = getDaylightStyle(location?.daylight[date], DAY_WIDTH, LOCATION_HEIGHT - 2);
-        }
+        const daylight = calculateDaylight(
+          location.coordinates.lat,
+          location.coordinates.lng,
+          date,
+          location.timezone,
+        );
+        const daylightStyle = getDaylightStyle(daylight, DAY_WIDTH, LOCATION_HEIGHT - 2);
 
         locationTimeline.days.push({
           id: `cell-${locationName}-${date}`,
@@ -209,7 +215,7 @@ export function useTimelineLayout(
           isEmpty,
           position,
           style: convertPositionToStyle(position),
-          daylight: location?.daylight[date],
+          daylight,
           daylightStyle,
         });
       });

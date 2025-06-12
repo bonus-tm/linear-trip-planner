@@ -2,7 +2,6 @@ export interface Location {
   name: string;
   coordinates: { lat: number; lng: number };
   timezone: number; // -12 to +12 UTC offset
-  daylight: Record<string, DaylightInfo>; // auto-calculated
 }
 
 export interface DaylightInfo {

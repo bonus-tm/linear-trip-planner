@@ -31,6 +31,25 @@ export function formatAsYMD(timestamp: number, timezoneShift: number) {
 }
 
 /**
+ * Format inputted date string to like "31.01.2025, 20:52"
+ */
+export function formatHumanDateTime(dateStr: string): string {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+
+  // 'de-DE' gives the desired dot format
+  const formatter = new Intl.DateTimeFormat('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  return formatter.format(date).replace(',', '');
+}
+
+/**
  * Format duration between two timestamps
  */
 export function formatDuration(begin: number, end: number) {

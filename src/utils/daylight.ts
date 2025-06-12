@@ -7,9 +7,10 @@ import type { DaylightInfo } from '../types'
 export function calculateDaylight(
   lat: number,
   lng: number,
-  date: Date,
+  dateStr: string,
   timezone: number
 ): DaylightInfo     {
+  const date = new Date(dateStr);
   // Julian day number
   const julianDay = getJulianDay(date)
   
@@ -119,35 +120,3 @@ function formatTime(minutes: number): string {
   
   return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
 }
-
-/**
- * Calculate daylight for a date range
- */
-export function calculateDaylightForRange(
-  lat: number,
-  lng: number,
-  startDate: string,
-  endDate: string,
-  timezone: number
-): Record<string, DaylightInfo> {
-  const result: Record<string, DaylightInfo> = {}
-  
-  // Parse dates using UTC to avoid timezone issues
-  const startParts = startDate.split('-').map(Number)
-  const endParts = endDate.split('-').map(Number)
-  
-  const start = new Date(Date.UTC(startParts[0], startParts[1] - 1, startParts[2]))
-  const end = new Date(Date.UTC(endParts[0], endParts[1] - 1, endParts[2]))
-  
-  const current = new Date(start)
-  
-  while (current <= end) {
-    const dateStr = current.toISOString().split('T')[0]
-    result[dateStr] = calculateDaylight(lat, lng, current, timezone)
-    
-    // Move to next day
-    current.setUTCDate(current.getUTCDate() + 1)
-  }
-  
-  return result
-} 
