@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import LocationsTable from './components/LocationsTable.vue';
 import StepsTable from './components/StepsTable.vue';
-import DaylightDisplay from './components/DaylightDisplay.vue';
 import Timeline from './components/Timeline.vue';
 </script>
 
@@ -12,7 +11,6 @@ import Timeline from './components/Timeline.vue';
     <LocationsTable/>
     <StepsTable/>
     <Timeline/>
-    <DaylightDisplay/>
   </div>
 </template>
 
