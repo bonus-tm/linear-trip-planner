@@ -127,7 +127,7 @@ const executeDelete = () => {
       size="small"
       @cell-edit-complete="onCellEditComplete"
     >
-      <Column field="type" header="Type" style="width: 100px">
+      <Column field="type" header="Type" style="width: 80px">
         <template #body="{ data }">
           <Tag :severity="data.type === 'move' ? 'info' : 'success'" :value="data.type"/>
         </template>
@@ -242,7 +242,7 @@ const executeDelete = () => {
         </template>
       </Column>
 
-      <Column header="Actions" style="width: 80px">
+      <Column style="width: 2rem">
         <template #body="{ data }">
           <Button
             icon="pi pi-trash"
@@ -290,8 +290,8 @@ const executeDelete = () => {
 
 .table-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 1rem;
   margin-bottom: 1rem;
 }
 

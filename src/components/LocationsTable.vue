@@ -257,9 +257,9 @@ const executeDelete = () => {
 
 .cards-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 h2 {

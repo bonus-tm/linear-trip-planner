@@ -17,13 +17,12 @@ import Timeline from './components/Timeline.vue';
 <style scoped>
 .app-container {
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1rem;
 }
 
 h1 {
-  color: var(--color-text);
-  margin-bottom: 2rem;
-  font-family: system-ui, -apple-system, sans-serif;
+  margin: 0 0 1rem;
+  text-align: center;
   transition: color 0.3s ease;
 }
 </style>

@@ -31,7 +31,7 @@ defineProps<{ location: TimelineLocation }>();
   line-height: 1.1;
   z-index: 20;
   width: fit-content;
-  padding: 0 1rem 0.5rem 0;
+  padding: 0.3rem 0.5rem 0.3rem 0;
 
   .timezone {
     font-size: 0.625rem;
