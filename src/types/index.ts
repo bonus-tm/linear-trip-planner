@@ -63,6 +63,7 @@ export interface DayBlock {
   hasStay: boolean;
   hasMove: boolean;
   isEmpty: boolean;
+  isWeekend: boolean;
   position: Position;
   style: CssStyle;
   daylight?: DaylightInfo;

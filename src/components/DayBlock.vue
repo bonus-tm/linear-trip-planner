@@ -5,8 +5,12 @@ defineProps<{ day: DayBlock }>();
 </script>
 
 <template>
-  <div :class="{empty: day.isEmpty}" :style="day.style" class="day-block">
-    <div :style="day.daylightStyle" class="daylight-bar" />
+  <div
+    :class="{empty: day.isEmpty, weekend: day.isWeekend}"
+    :style="day.style"
+    class="day-block"
+  >
+    <div :style="day.daylightStyle" class="daylight-bar"/>
     <div
       v-if="day.daylight?.polar_night && !day.isEmpty"
       class="polar-night-indicator"
@@ -32,7 +36,8 @@ defineProps<{ day: DayBlock }>();
     background-color: var(--color-surface);
     border: 1px dashed var(--color-border);
     transition: background-color 0.3s ease, border-color 0.3s ease;
-    .daylight-bar{
+
+    .daylight-bar {
       background-color: var(--color-daylight-on-empty-day);
     }
   }
@@ -72,4 +77,7 @@ defineProps<{ day: DayBlock }>();
   z-index: 1;
 }
 
+.weekend .date-label {
+  color: var(--color-weekend);
+}
 </style>

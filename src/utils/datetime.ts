@@ -91,3 +91,9 @@ export function getDatesBetween(begin: number, end: number, timezoneShift: numbe
 
   return dates;
 }
+
+export function isWeekendDay(dateString: string) {
+  const date = new Date(dateString);
+  const day = date.getDay(); // 0 = Sunday, 6 = Saturday
+  return day === 0 || day === 6;
+}

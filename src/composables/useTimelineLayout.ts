@@ -9,7 +9,7 @@ import type {
   TimelineLayout,
   TimelineLocation,
 } from '../types';
-import {formatDuration, getDatesBetween, getDayBeginTimestamp} from '../utils/datetime';
+import {formatDuration, getDatesBetween, getDayBeginTimestamp, isWeekendDay} from '../utils/datetime';
 import {convertPositionToStyle} from '../utils/style';
 import {calculateDaylight} from '../utils/daylight.ts';
 
@@ -209,10 +209,11 @@ export function useTimelineLayout(
           id: `cell-${locationName}-${date}`,
           timestamp: dayBeginTimestamp,
           date,
-          label: new Date(date).toLocaleDateString('en', {day: 'numeric', month: 'short'}),
+          label: new Date(date).toLocaleDateString('en', {day: 'numeric', month: 'short', weekday: 'short'}),
           hasStay,
           hasMove,
           isEmpty,
+          isWeekend: isWeekendDay(date),
           position,
           style: convertPositionToStyle(position),
           daylight,
