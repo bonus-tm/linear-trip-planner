@@ -1,19 +1,37 @@
-import {createApp} from 'vue'
-import PrimeVue from 'primevue/config'
+import {createApp} from 'vue';
+import PrimeVue from 'primevue/config';
+import {definePreset} from '@primeuix/themes';
 import Aura from '@primeuix/themes/aura';
-import 'primeicons/primeicons.css'
-import './style.css'
-import App from './App.vue'
+import 'primeicons/primeicons.css';
+import './style.css';
+import App from './App.vue';
 
-const app = createApp(App)
+const tlpPreset = definePreset(Aura, {
+  components: {
+    card: {
+      body: {
+        padding: '0.75rem',
+      },
+    },
+  },
+  semantic: {
+    formField: {
+      paddingX: '0.25rem',
+      paddingY: '0.1rem',
+    },
+  },
+});
+console.log(tlpPreset);
+
+const app = createApp(App);
 app.use(PrimeVue, {
   theme: {
-    preset: Aura,
+    preset: tlpPreset,
     options: {
       prefix: 'p',
       darkModeSelector: 'system',
-      cssLayer: false
-    }
-  }
-})
-app.mount('#app')
+      cssLayer: false,
+    },
+  },
+});
+app.mount('#app');
