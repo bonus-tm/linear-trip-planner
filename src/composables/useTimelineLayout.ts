@@ -100,10 +100,10 @@ export function useTimelineLayout(
     }
     if (latestStep) {
       const tz = locations.value[latestStep.finishLocation || latestStep.startLocation].timezone;
+      maxTimestamp = getDayBeginTimestamp(maxTimestamp, tz);
       if (new Date(latestStep.startDate).getHours() >= 12) {
         maxTimestamp += DAY_24_HRS;
       }
-      maxTimestamp = getDayBeginTimestamp(maxTimestamp, tz) + DAY_24_HRS;
     }
     return [minTimestamp, maxTimestamp];
   };

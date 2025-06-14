@@ -5,12 +5,10 @@
  * -10 → '-10:00'
  */
 export function formatTZ(shift: number) {
-  if (shift > 0) {
+  if (shift >= 0) {
     return `+${shift.toString().padStart(2, '0')}:00`;
   } else if (shift < 0) {
     return `-${shift.toString().padStart(2, '0')}`;
-  } else {
-    return 'Z';
   }
 }
 
