@@ -5,11 +5,7 @@
  * -10 → '-10:00'
  */
 export function formatTZ(shift: number) {
-  if (shift >= 0) {
-    return `+${shift.toString().padStart(2, '0')}:00`;
-  } else if (shift < 0) {
-    return `-${shift.toString().padStart(2, '0')}`;
-  }
+  return `${shift >= 0 ? '+' : '-'}${Math.abs(shift).toString().padStart(2, '0')}:00`;
 }
 
 /**
@@ -77,15 +73,15 @@ export function formatDurationTime(begin: number, end: number) {
 
 export function formatDurationDays(beginDate: string, endDate: string) {
   if (!beginDate || !endDate) return '';
-  
+
   // Parse dates and ignore time parts by using only the date portion
   const begin = new Date(beginDate.split('T')[0]);
   const end = new Date(endDate.split('T')[0]);
-  
+
   // Calculate difference in milliseconds and convert to days
   const delta = end.getTime() - begin.getTime();
   const days = Math.floor(delta / (1000 * 60 * 60 * 24));
-  
+
   // Use Intl.DurationFormat to format the duration
   // @ts-ignore
   const formatter = new Intl.DurationFormat('en-US', {style: 'short'});

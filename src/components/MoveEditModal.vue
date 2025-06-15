@@ -4,11 +4,11 @@ import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
-import Select from 'primevue/select';
 import Message from 'primevue/message';
 import type {Step} from '../types';
 import {useAppState} from '../composables/useAppState';
 import {formatTZ} from '../utils/datetime';
+import LocationSelect from './LocationSelect.vue';
 
 interface Props {
   visible: boolean;
@@ -22,7 +22,7 @@ const emit = defineEmits<{
   delete: [stepId: string];
 }>();
 
-const {locationNames, locations} = useAppState();
+const {locations} = useAppState();
 
 // Form data
 const formData = ref<Partial<Step>>({});
@@ -124,19 +124,15 @@ const handleCancel = () => {
       <div class="form-row">
         <div class="form-field">
           <label>From Location *</label>
-          <Select
+          <LocationSelect
             v-model="formData.startLocation"
-            :invalid="!formData.startLocation"
-            :options="locationNames"
             placeholder="Select departure location"
           />
         </div>
         <div class="form-field">
           <label>To Location *</label>
-          <Select
+          <LocationSelect
             v-model="formData.finishLocation"
-            :invalid="!formData.finishLocation"
-            :options="locationNames"
             placeholder="Select arrival location"
           />
         </div>

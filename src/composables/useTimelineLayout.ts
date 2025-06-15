@@ -11,7 +11,7 @@ import type {
 } from '../types';
 import {formatDurationTime, getDatesBetween, getDayBeginTimestamp, isWeekendDay} from '../utils/datetime';
 import {convertPositionToStyle} from '../utils/style';
-import {calculateDaylight} from '../utils/daylight.ts';
+import {calculateDaylight} from '../utils/daylight';
 
 // Constants
 const LAYOUT_PADDING_Y = 30;
@@ -91,14 +91,14 @@ export function useTimelineLayout(
         maxTimestamp = step.finishTimestamp;
       }
     });
-    if (earliestStep) {
+    if (earliestStep?.startLocation) {
       const tz = locations.value[earliestStep.startLocation].timezone;
       if (new Date(earliestStep.startDate).getHours() < 12) {
         minTimestamp -= DAY_24_HRS;
       }
       minTimestamp = getDayBeginTimestamp(minTimestamp, tz);
     }
-    if (latestStep) {
+    if (latestStep?.finishLocation || latestStep?.startLocation) {
       const tz = locations.value[latestStep.finishLocation || latestStep.startLocation].timezone;
       maxTimestamp = getDayBeginTimestamp(maxTimestamp, tz);
       if (new Date(latestStep.startDate).getHours() >= 12) {

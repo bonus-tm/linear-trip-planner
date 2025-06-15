@@ -5,8 +5,8 @@ import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import type {Step} from '../types';
 import {useAppState} from '../composables/useAppState';
-import {capitalize} from '../utils/text.ts';
-import {formatDurationDays, formatHumanDate, formatTZ} from '../utils/datetime.ts';
+import {capitalize} from '../utils/text';
+import {formatDurationDays, formatHumanDate, formatTZ} from '../utils/datetime';
 
 interface Props {
   step: Step;
@@ -34,7 +34,7 @@ const duration = computed(() => {
         <span class="step-number">
           <span class="hashbang">#</span>{{ stepNumber }}
         </span>
-        <Tag severity="success" :value="capitalize(step.type)"/>
+        <Tag :value="capitalize(step.type)" severity="success"/>
         <div class="step-duration">{{ duration }}</div>
 
         <div class="edit-button-container">

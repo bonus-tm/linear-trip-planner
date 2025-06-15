@@ -7,7 +7,7 @@ import Card from 'primevue/card';
 import LocationEditModal from './LocationEditModal.vue';
 import LocationAddModal from './LocationAddModal.vue';
 import type {Location} from '../types';
-import {formatTZ} from '../utils/datetime.ts';
+import {formatTZ} from '../utils/datetime';
 
 const {locations, addLocation, updateLocation, deleteLocation, error} = useAppState();
 
