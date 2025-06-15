@@ -152,10 +152,6 @@ const handleDeleteStep = (stepId: string) => {
 </template>
 
 <style scoped>
-.steps-cards {
-  margin-bottom: 2rem;
-}
-
 .cards-header {
   display: flex;
   align-items: center;
@@ -173,22 +169,5 @@ h2 {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
-}
-
-/* Responsive design for smaller screens */
-@media (max-width: 768px) {
-  .cards-container {
-    grid-template-columns: 1fr;
-  }
-
-  .cards-header {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: stretch;
-  }
-
-  .cards-header h2 {
-    text-align: center;
-  }
 }
 </style> 
