@@ -22,20 +22,6 @@ const {locations} = useAppState();
 
 const startLocation = computed(() => locations.value[props.step.startLocation]);
 
-const getDuration = () => {
-  const start = new Date(props.step.startDate);
-  const finish = new Date(props.step.finishDate);
-  const diffMs = finish.getTime() - start.getTime();
-  const diffHours = Math.round(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffHours / 24);
-  const remainingHours = diffHours % 24;
-
-  if (diffDays > 0) {
-    return remainingHours > 0 ? `${diffDays}d ${remainingHours}h` : `${diffDays}d`;
-  }
-  return `${diffHours}h`;
-};
-
 const duration = computed(() => {
   return formatDurationDays(props.step.startDate, props.step.finishDate);
 });
@@ -69,7 +55,7 @@ const duration = computed(() => {
         <div class="stay-location">
           {{ step.startLocation }}
           <div v-if="startLocation" class="timezone-info">
-            GTM{{ formatTZ(startLocation.timezone) }}
+            GMT{{ formatTZ(startLocation.timezone) }}
           </div>
         </div>
 
