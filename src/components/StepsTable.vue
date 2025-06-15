@@ -1,32 +1,29 @@
 <script lang="ts" setup>
-import {ref} from 'vue';
+import {computed, ref} from 'vue';
 import {useAppState} from '../composables/useAppState';
-import DataTable from 'primevue/datatable';
-import Column from 'primevue/column';
 import Button from 'primevue/button';
-import InputText from 'primevue/inputtext';
-import Select from 'primevue/select';
-import Dialog from 'primevue/dialog';
 import Message from 'primevue/message';
-import Tag from 'primevue/tag';
-import type {Step} from '../types';
-import {formatHumanDateTime, formatISOWithTZ, formatTZ} from '../utils/datetime';
+import type {Step, StepType} from '../types';
+import {formatISOWithTZ} from '../utils/datetime';
+import MoveCard from './MoveCard.vue';
+import MoveEditModal from './MoveEditModal.vue';
+import StayCard from './StayCard.vue';
+import StayEditModal from './StayEditModal.vue';
 
 const {sortedSteps, locationNames, locations, addStep, updateStep, deleteStep, error} = useAppState();
 
-const deleteDialogVisible = ref(false);
-const stepToDelete = ref('');
+// Modal state
+const editModalVisible = ref(false);
+const editingStep = ref<Step | null>(null);
 
-const typeOptions = [
-  {label: 'Move', value: 'move'},
-  {label: 'Stay', value: 'stay'},
-];
+// Convert steps to cards data with computed properties for editing
+const cardsData = computed(() =>
+  sortedSteps.value.map(step => ({
+    ...step,
+  })),
+);
 
-const getRowClass = (data: Step) => {
-  return data.type === 'move' ? 'move-row' : 'stay-row';
-};
-
-const addNewStep = () => {
+const addNewStep = (type: StepType) => {
   const lastStep = sortedSteps.value[sortedSteps.value.length - 1];
 
   // Determine the location for the new step
@@ -50,7 +47,7 @@ const addNewStep = () => {
 
   // Prefill values based on requirements
   const newStep: Omit<Step, 'id'> = {
-    type: 'stay',
+    type,
     startDate: defaultDateTime,
     finishDate: defaultDateTime,
     startTimestamp: defaultTimestamp,
@@ -60,222 +57,93 @@ const addNewStep = () => {
   };
 
   addStep(newStep);
-};
-
-const onCellEditComplete = (event: any) => {
-  const {newData, field} = event;
-
-  // Validation - need to consider timezones for proper date comparison
-  if (['startDate', 'finishDate', 'startLocation', 'finishLocation'].includes(field)) {
-    const startTimezone = locations.value[newData.startLocation]?.timezone || 0;
-    const finishTimezone = newData.type === 'move' && newData.finishLocation
-      ? (locations.value[newData.finishLocation]?.timezone || 0)
-      : startTimezone;
-
-    const startTimestamp = new Date(`${newData.startDate}${formatTZ(startTimezone)}`).getTime();
-    const finishTimestamp = new Date(`${newData.finishDate}${formatTZ(finishTimezone)}`).getTime();
-    console.log([startTimestamp, finishTimestamp]);
-
-    if (finishTimestamp < startTimestamp) {
-      error.value = 'Finish date/time cannot be earlier than start date/time (accounting for timezones)';
-      // Do not apply the change
-      return;
-    }
-    newData.startTimestamp = startTimestamp;
-    newData.finishTimestamp = finishTimestamp;
+  
+  // Find the newly added step and open edit modal
+  // The new step should be the last one in the sorted array after adding
+  const newlyAddedStep = sortedSteps.value[sortedSteps.value.length - 1];
+  if (newlyAddedStep) {
+    editingStep.value = newlyAddedStep;
+    editModalVisible.value = true;
   }
+};
 
-  // Convert airport codes to uppercase
-  if (field === 'startAirport' || field === 'finishAirport') {
-    newData[field] = newData[field]?.toUpperCase();
+const handleEditStep = (stepId: string) => {
+  const step = sortedSteps.value.find(s => s.id === stepId);
+  if (step) {
+    editingStep.value = step;
+    editModalVisible.value = true;
   }
-
-  console.log(newData);
-  // Update step
-  updateStep(newData.id, newData);
 };
 
-const confirmDelete = (id: string) => {
-  stepToDelete.value = id;
-  deleteDialogVisible.value = true;
+const handleSaveStep = (stepData: Partial<Step>) => {
+  if (editingStep.value?.id) {
+    updateStep(editingStep.value.id, stepData);
+  }
+  editingStep.value = null;
 };
 
-const executeDelete = () => {
-  deleteStep(stepToDelete.value);
-  deleteDialogVisible.value = false;
-  stepToDelete.value = '';
+const handleDeleteStep = (stepId: string) => {
+  deleteStep(stepId);
+  editingStep.value = null;
 };
 </script>
 
 <template>
-  <div class="steps-table">
-    <div class="table-header">
+  <div class="steps-cards">
+    <div class="cards-header">
       <h2>Steps</h2>
       <Button
-        icon="pi pi-plus"
-        label="Add Step"
+        icon="pi pi-arrow-right"
+        label="Add Move"
+        severity="info"
         size="small"
-        @click="addNewStep"
+        @click="addNewStep('move')"
+      />
+      <Button
+        icon="pi pi-building"
+        label="Add Stay"
+        severity="success"
+        size="small"
+        @click="addNewStep('stay')"
       />
     </div>
 
-    <DataTable
-      :rowClass="getRowClass"
-      :value="sortedSteps"
-      editMode="cell"
-      responsiveLayout="scroll"
-      size="small"
-      @cell-edit-complete="onCellEditComplete"
-    >
-      <Column field="type" header="Type" style="width: 80px">
-        <template #body="{ data }">
-          <Tag :severity="data.type === 'move' ? 'info' : 'success'" :value="data.type"/>
-        </template>
-        <template #editor="{ data }">
-          <Select
-            v-model="data.type"
-            :options="typeOptions"
-            autofocus
-            optionLabel="label"
-            optionValue="value"
-          />
-        </template>
-      </Column>
-
-      <Column field="startDate" header="Start Date/Time">
-        <template #body="{ data }">
-          {{ formatHumanDateTime(data.startDate) }}
-        </template>
-        <template #editor="{ data }">
-          <InputText
-            v-model="data.startDate"
-            :step="data.type === 'move' ? 60 : undefined"
-            autofocus
-            type="datetime-local"
-          />
-        </template>
-      </Column>
-
-      <Column field="finishDate" header="Finish Date/Time">
-        <template #body="{ data }">
-          {{ formatHumanDateTime(data.finishDate) }}
-        </template>
-        <template #editor="{ data }">
-          <InputText
-            v-model="data.finishDate"
-            :min="data.startDate"
-            :step="data.type === 'move' ? 60 : undefined"
-            autofocus
-            type="datetime-local"
-          />
-        </template>
-      </Column>
-
-      <Column field="startLocation" header="Start Location">
-        <template #editor="{ data }">
-          <Select
-            v-model="data.startLocation"
-            :options="locationNames"
-            autofocus
-            placeholder="Select location"
-          />
-        </template>
-      </Column>
-
-      <Column field="finishLocation" header="Finish Location">
-        <template #body="{ data }">
-          {{ data.type === 'move' ? data.finishLocation : '-' }}
-        </template>
-        <template #editor="{ data }">
-          <Select
-            v-if="data.type === 'move'"
-            v-model="data.finishLocation"
-            :options="locationNames"
-            autofocus
-            placeholder="Select location"
-          />
-          <span v-else>-</span>
-        </template>
-      </Column>
-
-      <Column field="startAirport" header="From Airport">
-        <template #body="{ data }">
-          {{ data.type === 'move' ? (data.startAirport || '-') : '-' }}
-        </template>
-        <template #editor="{ data }">
-          <InputText
-            v-if="data.type === 'move'"
-            v-model="data.startAirport"
-            :maxlength="3"
-            autofocus
-            placeholder="XXX"
-            style="text-transform: uppercase"
-          />
-          <span v-else>-</span>
-        </template>
-      </Column>
-
-      <Column field="finishAirport" header="To Airport">
-        <template #body="{ data }">
-          {{ data.type === 'move' ? (data.finishAirport || '-') : '-' }}
-        </template>
-        <template #editor="{ data }">
-          <InputText
-            v-if="data.type === 'move'"
-            v-model="data.finishAirport"
-            :maxlength="3"
-            autofocus
-            placeholder="XXX"
-            style="text-transform: uppercase"
-          />
-          <span v-else>-</span>
-        </template>
-      </Column>
-
-      <Column field="description" header="Description">
-        <template #editor="{ data }">
-          <InputText
-            v-model="data.description"
-            autofocus
-            placeholder="Optional description"
-          />
-        </template>
-      </Column>
-
-      <Column style="width: 2rem">
-        <template #body="{ data }">
-          <Button
-            icon="pi pi-trash"
-            rounded
-            severity="danger"
-            size="small"
-            text
-            @click="confirmDelete(data.id)"
-          />
-        </template>
-      </Column>
-    </DataTable>
-
-    <Dialog
-      v-model:visible="deleteDialogVisible"
-      :modal="true"
-      :style="{ width: '400px' }"
-      header="Confirm Delete"
-    >
-      <p>Are you sure you want to delete this step?</p>
-      <template #footer>
-        <Button
-          label="Cancel"
-          text
-          @click="deleteDialogVisible = false"
+    <div class="cards-container">
+      <template
+        v-for="step in cardsData"
+        :key="step.id"
+      >
+        <MoveCard
+          v-if="step.type === 'move'"
+          :step="step"
+          :step-number="sortedSteps.findIndex(s => s.id === step.id) + 1"
+          @edit="handleEditStep"
         />
-        <Button
-          label="Delete"
-          severity="danger"
-          @click="executeDelete"
+        <StayCard
+          v-if="step.type === 'stay'"
+          :step="step"
+          :step-number="sortedSteps.findIndex(s => s.id === step.id) + 1"
+          @edit="handleEditStep"
         />
       </template>
-    </Dialog>
+    </div>
+
+    <!-- Edit Modals -->
+    <StayEditModal
+      v-if="editingStep && editingStep.type === 'stay'"
+      v-model:visible="editModalVisible"
+      :step="editingStep"
+      @delete="handleDeleteStep"
+      @save="handleSaveStep"
+    />
+
+    <MoveEditModal
+      v-if="editingStep && editingStep.type === 'move'"
+      v-model:visible="editModalVisible"
+      :step="editingStep"
+      @delete="handleDeleteStep"
+      @save="handleSaveStep"
+    />
 
     <Message v-if="error" :closable="true" severity="error" @close="error = null">
       {{ error }}
@@ -284,11 +152,11 @@ const executeDelete = () => {
 </template>
 
 <style scoped>
-.steps-table {
+.steps-cards {
   margin-bottom: 2rem;
 }
 
-.table-header {
+.cards-header {
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -301,13 +169,26 @@ h2 {
   transition: color 0.3s ease;
 }
 
-:deep(.move-row) {
-  background-color: var(--color-move-row);
-  transition: background-color 0.3s ease;
+.cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
 }
 
-:deep(.stay-row) {
-  background-color: var(--color-stay-row);
-  transition: background-color 0.3s ease;
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+  .cards-container {
+    grid-template-columns: 1fr;
+  }
+
+  .cards-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .cards-header h2 {
+    text-align: center;
+  }
 }
 </style> 

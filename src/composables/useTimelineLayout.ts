@@ -9,7 +9,7 @@ import type {
   TimelineLayout,
   TimelineLocation,
 } from '../types';
-import {formatDuration, getDatesBetween, getDayBeginTimestamp, isWeekendDay} from '../utils/datetime';
+import {formatDurationTime, getDatesBetween, getDayBeginTimestamp, isWeekendDay} from '../utils/datetime';
 import {convertPositionToStyle} from '../utils/style';
 import {calculateDaylight} from '../utils/daylight.ts';
 
@@ -269,7 +269,7 @@ export function useTimelineLayout(
             style: convertPositionToStyle(endTimePosition),
           },
           duration: {
-            text: formatDuration(step.startTimestamp, step.finishTimestamp),
+            text: formatDurationTime(step.startTimestamp, step.finishTimestamp),
             position: durationPosition,
             style: convertPositionToStyle(durationPosition),
           },

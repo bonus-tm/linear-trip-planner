@@ -10,9 +10,11 @@ export interface DaylightInfo {
   polar_night: boolean;
 }
 
+export type StepType = 'move' | 'stay'
+
 export interface Step {
   id: string; // Add unique identifier
-  type: 'move' | 'stay';
+  type: StepType;
   startDate: string; // ISO datetime or date
   finishDate: string;
   startTimestamp: number;

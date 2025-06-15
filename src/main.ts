@@ -14,12 +14,6 @@ const tlpPreset = definePreset(Aura, {
       },
     },
   },
-  semantic: {
-    formField: {
-      paddingX: '0.25rem',
-      paddingY: '0.1rem',
-    },
-  },
 });
 console.log(tlpPreset);
 

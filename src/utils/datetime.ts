@@ -48,15 +48,48 @@ export function formatHumanDateTime(dateStr: string): string {
 }
 
 /**
- * Format duration between two timestamps
+ * Format inputted date string to like "31.01.2025"
  */
-export function formatDuration(begin: number, end: number) {
+export function formatHumanDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+
+  // 'de-DE' gives the desired dot format
+  const formatter = new Intl.DateTimeFormat('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+  return formatter.format(date);
+}
+
+/**
+ * Format duration as hours and minutes between two timestamps
+ */
+export function formatDurationTime(begin: number, end: number) {
   const delta = (end - begin) / 1000;
   const hours = Math.floor(delta / 3600);
   const minutes = Math.floor((delta % 3600) / 60);
   // @ts-ignore
   const formatter = new Intl.DurationFormat('en-US', {style: 'narrow'});
   return formatter.format({hours, minutes});
+}
+
+export function formatDurationDays(beginDate: string, endDate: string) {
+  if (!beginDate || !endDate) return '';
+  
+  // Parse dates and ignore time parts by using only the date portion
+  const begin = new Date(beginDate.split('T')[0]);
+  const end = new Date(endDate.split('T')[0]);
+  
+  // Calculate difference in milliseconds and convert to days
+  const delta = end.getTime() - begin.getTime();
+  const days = Math.floor(delta / (1000 * 60 * 60 * 24));
+  
+  // Use Intl.DurationFormat to format the duration
+  // @ts-ignore
+  const formatter = new Intl.DurationFormat('en-US', {style: 'short'});
+  return formatter.format({days});
 }
 
 export function getDayBeginTimestamp(date: string | number, timezoneShift: number): number {
