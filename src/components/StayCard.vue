@@ -6,7 +6,8 @@ import Tag from 'primevue/tag';
 import type {Step} from '../types';
 import {useAppState} from '../composables/useAppState';
 import {capitalize} from '../utils/text';
-import {formatDurationDays, formatHumanDate, formatTZ} from '../utils/datetime';
+import {formatDurationDays, formatTZ} from '../utils/datetime';
+import StayDates from './StayDates.vue';
 
 interface Props {
   step: Step;
@@ -60,7 +61,7 @@ const duration = computed(() => {
         </div>
 
         <div class="dates">
-          {{ formatHumanDate(step.startDate) }}&thinsp;–&thinsp;{{ formatHumanDate(step.finishDate) }}
+          <StayDates :begin="step.startDate" :end="step.finishDate"/>
         </div>
 
         <div v-if="step.description" class="step-description">

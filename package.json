@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "repository": {
+    "url": "https://github.com/bonus-tm/linear-trip-planner"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",

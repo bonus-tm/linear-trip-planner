@@ -4,9 +4,9 @@ import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import type {Step} from '../types';
-import {useAppState} from '../composables/useAppState';
 import {capitalize} from '../utils/text';
-import {formatDurationTime, formatHumanDateTime} from '../utils/datetime';
+import {formatDurationTime} from '../utils/datetime';
+import MoveDateTime from './MoveDateTime.vue';
 
 interface Props {
   step: Step;
@@ -18,38 +18,17 @@ const emit = defineEmits<{
   edit: [stepId: string];
 }>();
 
-const {locations} = useAppState();
-
-const startLocation = computed(() => locations.value[props.step.startLocation]);
-const finishLocation = computed(() => locations.value[props.step.finishLocation || '']);
-
-const formatDateTime = (dateStr: string) => {
-  const date = new Date(dateStr);
-  return date.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
-};
-
-const getDuration = () => {
-  const start = new Date(props.step.startDate);
-  const finish = new Date(props.step.finishDate);
-  const diffMs = finish.getTime() - start.getTime();
-  const diffMinutes = Math.round(diffMs / (1000 * 60));
-  const hours = Math.floor(diffMinutes / 60);
-  const minutes = diffMinutes % 60;
-
-  if (hours > 0) {
-    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-  }
-  return `${minutes}m`;
-};
 const duration = computed(() => {
   return formatDurationTime(props.step.startTimestamp, props.step.finishTimestamp);
 });
+const sameDay = computed(() => {
+  const start = new Date(props.step.startDate);
+  const finish = new Date(props.step.finishDate);
+  const sameYear = start.getFullYear() === finish.getFullYear();
+  const sameMonth = start.getMonth() === finish.getMonth();
+  const sameDay = start.getDate() === finish.getDate();
+  return sameYear && sameMonth && sameDay;
+})
 </script>
 
 <template>
@@ -80,11 +59,11 @@ const duration = computed(() => {
         <div class="step-start step-location">
           {{ step.startLocation }}
         </div>
-        <div class="step-start step-date">
-          {{ formatHumanDateTime(step.startDate) }}
-        </div>
         <div class="step-start airport">
           {{ step.startAirport }}
+        </div>
+        <div class="step-start step-date">
+          <MoveDateTime :date="step.startDate" showDate />
         </div>
 
         <div class="arrow">
@@ -94,11 +73,11 @@ const duration = computed(() => {
         <div class="step-finish step-location">
           {{ step.finishLocation }}
         </div>
-        <div class="step-finish step-date">
-          {{ formatHumanDateTime(step.finishDate) }}
-        </div>
         <div class="step-finish airport">
           {{ step.finishAirport }}
+        </div>
+        <div class="step-finish step-date">
+          <MoveDateTime :date="step.finishDate" :showDate="!sameDay" />
         </div>
 
         <div v-if="step.description" class="step-description">
@@ -146,10 +125,12 @@ const duration = computed(() => {
   justify-content: start;
   gap: 0 0.5rem;
 }
-.step-start{
+
+.step-start {
   grid-column-start: 1;
 }
-.step-finish{
+
+.step-finish {
   grid-column-start: 3;
 }
 
@@ -158,14 +139,17 @@ const duration = computed(() => {
   font-weight: 600;
   grid-row: 1;
 }
-.step-date {
-  grid-row: 2;
-}
 
 .airport {
   font-family: monospace;
-  font-weight: 600;
+  font-weight: 400;
   text-transform: uppercase;
+  grid-row: 2;
+  opacity: 0.8;
+}
+
+.step-date {
+  grid-row: 3;
 }
 
 .arrow {
