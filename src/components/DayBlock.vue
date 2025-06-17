@@ -75,9 +75,12 @@ defineProps<{ day: DayBlock }>();
   justify-content: center;
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   z-index: 1;
-}
 
-.weekend .date-label {
-  color: var(--color-weekend);
+  .empty & {
+    display: none;
+  }
+  .weekend & {
+    color: var(--color-weekend);
+  }
 }
 </style>

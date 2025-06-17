@@ -137,6 +137,11 @@ const handleLocationDelete = (locationName: string) => {
 </template>
 
 <style scoped>
+.locations-cards {
+  margin-block: 2rem;
+  padding-inline: 1rem;
+}
+
 .cards-header {
   display: flex;
   align-items: center;

@@ -55,7 +55,7 @@ export function useAppState() {
   const addStep = (step: Omit<StepsList[0], 'id'>) => {
     const newStep = {
       ...step,
-      id: `step-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+      id: `S${Math.random().toString(36).substring(2, 9)}`,
     };
 
     steps.value.push(newStep);

@@ -16,15 +16,13 @@ import Timeline from './components/Timeline.vue';
 
 <style scoped>
 .app-container {
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
 }
 
 h1 {
   margin: 0;
+  padding-block: 0.5em;
   text-align: center;
   transition: color 0.3s ease;
+  background-color: var(--color-surface)
 }
 </style>

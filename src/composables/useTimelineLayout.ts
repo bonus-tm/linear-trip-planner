@@ -101,7 +101,7 @@ export function useTimelineLayout(
     if (latestStep?.finishLocation || latestStep?.startLocation) {
       const tz = locations.value[latestStep.finishLocation || latestStep.startLocation].timezone;
       maxTimestamp = getDayBeginTimestamp(maxTimestamp, tz);
-      if (new Date(latestStep.startDate).getHours() >= 12) {
+      if (new Date(latestStep.finishDate).getHours() >= 12) {
         maxTimestamp += DAY_24_HRS;
       }
     }
