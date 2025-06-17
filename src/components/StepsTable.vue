@@ -2,7 +2,6 @@
 import {computed, ref} from 'vue';
 import {useAppState} from '../composables/useAppState';
 import Button from 'primevue/button';
-import Message from 'primevue/message';
 import type {Step, StepType} from '../types';
 import {formatISOWithTZ} from '../utils/datetime';
 import MoveCard from './MoveCard.vue';
@@ -10,7 +9,7 @@ import MoveEditModal from './MoveEditModal.vue';
 import StayCard from './StayCard.vue';
 import StayEditModal from './StayEditModal.vue';
 
-const {sortedSteps, locationNames, locations, addStep, updateStep, deleteStep, error} = useAppState();
+const {sortedSteps, locationNames, locations, addStep, updateStep, deleteStep} = useAppState();
 
 // Modal state
 const editModalVisible = ref(false);
@@ -57,7 +56,7 @@ const addNewStep = (type: StepType) => {
   };
 
   addStep(newStep);
-  
+
   // Find the newly added step and open edit modal
   // The new step should be the last one in the sorted array after adding
   const newlyAddedStep = sortedSteps.value[sortedSteps.value.length - 1];
@@ -144,10 +143,6 @@ const handleDeleteStep = (stepId: string) => {
       @delete="handleDeleteStep"
       @save="handleSaveStep"
     />
-
-    <Message v-if="error" :closable="true" severity="error" @close="error = null">
-      {{ error }}
-    </Message>
   </div>
 </template>
 
@@ -156,6 +151,7 @@ const handleDeleteStep = (stepId: string) => {
   margin-block: 2rem;
   padding-inline: 1rem;
 }
+
 .cards-header {
   display: flex;
   align-items: center;

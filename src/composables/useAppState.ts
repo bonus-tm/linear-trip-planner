@@ -2,6 +2,8 @@ import {computed, ref} from 'vue';
 import {useLocalStorage} from '@vueuse/core';
 import type {Location, LocationsMap, StepsList} from '../types';
 
+const error = ref<string | null>(null);
+
 export function useAppState() {
   // Persisted state using localStorage
   const locations = useLocalStorage<LocationsMap>('trip-planner-locations', {});
@@ -9,7 +11,6 @@ export function useAppState() {
 
   // Loading states
   const isLoading = ref(false);
-  const error = ref<string | null>(null);
 
   // Location operations
   const addLocation = (location: Location) => {

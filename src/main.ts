@@ -1,5 +1,6 @@
 import {createApp} from 'vue';
 import PrimeVue from 'primevue/config';
+import ToastService from 'primevue/toastservice';
 import {definePreset} from '@primeuix/themes';
 import Aura from '@primeuix/themes/aura';
 import 'primeicons/primeicons.css';
@@ -28,4 +29,5 @@ app.use(PrimeVue, {
     },
   },
 });
+app.use(ToastService)
 app.mount('#app');

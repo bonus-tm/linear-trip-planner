@@ -2,14 +2,13 @@
 import {computed, ref} from 'vue';
 import {useAppState} from '../composables/useAppState';
 import Button from 'primevue/button';
-import Message from 'primevue/message';
 import Card from 'primevue/card';
 import LocationEditModal from './LocationEditModal.vue';
 import LocationAddModal from './LocationAddModal.vue';
 import type {Location} from '../types';
 import {formatTZ} from '../utils/datetime';
 
-const {locations, addLocation, updateLocation, deleteLocation, error} = useAppState();
+const {locations, addLocation, updateLocation, deleteLocation} = useAppState();
 
 const editLocationDialogVisible = ref(false);
 const locationToEdit = ref<Location | null>(null);
@@ -129,10 +128,6 @@ const handleLocationDelete = (locationName: string) => {
       @delete="handleLocationDelete"
       @save="handleLocationSave"
     />
-
-    <Message v-if="error" :closable="true" severity="error" @close="error = null">
-      {{ error }}
-    </Message>
   </div>
 </template>
 

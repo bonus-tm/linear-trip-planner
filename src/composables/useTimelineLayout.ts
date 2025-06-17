@@ -93,15 +93,15 @@ export function useTimelineLayout(
     });
     if (earliestStep?.startLocation) {
       const tz = locations.value[earliestStep.startLocation].timezone;
-      if (new Date(earliestStep.startDate).getHours() < 12) {
+      if (earliestStep.type === 'move' && new Date(earliestStep.startDate).getHours() < 12) {
         minTimestamp -= DAY_24_HRS;
       }
       minTimestamp = getDayBeginTimestamp(minTimestamp, tz);
     }
     if (latestStep?.finishLocation || latestStep?.startLocation) {
       const tz = locations.value[latestStep.finishLocation || latestStep.startLocation].timezone;
-      maxTimestamp = getDayBeginTimestamp(maxTimestamp, tz);
-      if (new Date(latestStep.finishDate).getHours() >= 12) {
+      maxTimestamp = getDayBeginTimestamp(maxTimestamp, tz) + DAY_24_HRS - 1;
+      if (latestStep.type === 'move' && new Date(latestStep.finishDate).getHours() >= 12) {
         maxTimestamp += DAY_24_HRS;
       }
     }
