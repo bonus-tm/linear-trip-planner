@@ -41,7 +41,7 @@ const sameYear = computed(() => b.value.getFullYear() === e.value.getFullYear())
       <div class="day">{{ beginDay }}</div>
       <div class="month" v-if="!sameMonth || !sameYear"> {{ beginMonth }}</div>
       <div class="year" v-if="!sameYear">{{ beginYear }}</div>
-      <div class="day">–</div>
+      <div class="dash">—</div>
     </div>
     <div class="date date-end">
       <div class="day">{{ endDay }}</div>
@@ -84,5 +84,10 @@ const sameYear = computed(() => b.value.getFullYear() === e.value.getFullYear())
   font-size: 1.15em;
   font-weight: 300;
   opacity: 0.7;
+}
+
+.dash {
+  font-size: 1.2em;
+  align-self: center;
 }
 </style>
