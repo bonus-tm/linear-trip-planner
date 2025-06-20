@@ -1,0 +1,12 @@
+services:
+  linear-trip-planner:
+    image: linear-trip-planner-nginx
+    build:
+      context: .
+    restart: unless-stopped
+    container_name: linear-trip-planner
+
+networks:
+  default:
+    external: true
+    name: proxied
