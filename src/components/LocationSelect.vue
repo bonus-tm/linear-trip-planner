@@ -1,16 +1,24 @@
 <script setup lang="ts">
-import {ref} from 'vue';
+import {ref, computed} from 'vue';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
 import LocationAddModal from './LocationAddModal.vue';
 import {useAppState} from '../composables/useAppState';
 
-const selectedLocation = defineModel<string>();
+const selectedLocationId = defineModel<number>();
 defineProps<{
   placeholder?: string
 }>();
 
-const {locationNames, addLocation} = useAppState();
+const {locationsList, addLocation} = useAppState();
+
+// Convert locations to options for the select
+const locationOptions = computed(() => 
+  locationsList.value.map(location => ({
+    label: location.name,
+    value: location.id
+  }))
+);
 
 // Location add modal state
 const showLocationModal = ref(false);
@@ -23,16 +31,23 @@ const handleLocationCreated = (locationData: { name: string; timezone: number })
     timezone: locationData.timezone,
   };
   addLocation(newLocation);
-  selectedLocation.value = locationData.name;
+  
+  // Find the newly created location and select it
+  const createdLocation = locationsList.value.find(loc => loc.name === locationData.name);
+  if (createdLocation) {
+    selectedLocationId.value = createdLocation.id;
+  }
   showLocationModal.value = false;
 };
 </script>
 
 <template>
   <Select
-    v-model="selectedLocation"
-    :invalid="!selectedLocation"
-    :options="locationNames"
+    v-model="selectedLocationId"
+    :invalid="!selectedLocationId"
+    :options="locationOptions"
+    optionLabel="label"
+    optionValue="value"
     :placeholder="placeholder || 'Select location'"
   >
     <template #footer>
@@ -58,21 +73,4 @@ const handleLocationCreated = (locationData: { name: string; timezone: number })
 </template>
 
 <style scoped>
-.form-row {
-  display: flex;
-  gap: 1rem;
-}
-
-.form-field {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.form-field label {
-  font-weight: 600;
-  color: var(--color-text);
-  font-size: 0.875rem;
-}
 </style>

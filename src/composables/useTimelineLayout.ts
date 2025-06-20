@@ -57,18 +57,18 @@ export function useTimelineLayout(
 ) {
   // const containerRef = ref<HTMLElement>();
 
-  // Get unique locations used in steps
-  const usedLocations = computed(() => {
-    const locationSet = new Set<string>();
+  // Get unique location IDs used in steps
+  const usedLocationIds = computed(() => {
+    const locationIdSet = new Set<number>();
 
     steps.value.forEach(step => {
-      locationSet.add(step.startLocation);
-      if (step.finishLocation) {
-        locationSet.add(step.finishLocation);
+      locationIdSet.add(step.startLocationId);
+      if (step.finishLocationId) {
+        locationIdSet.add(step.finishLocationId);
       }
     });
 
-    return Array.from(locationSet).filter(name => locations.value[name]);
+    return Array.from(locationIdSet).filter(id => locations.value[id]);
   });
 
   /**
@@ -91,15 +91,18 @@ export function useTimelineLayout(
         maxTimestamp = step.finishTimestamp;
       }
     });
-    if (earliestStep?.startLocation) {
-      const tz = locations.value[earliestStep.startLocation].timezone;
+
+    if (earliestStep?.startLocationId) {
+      const tz = locations.value[earliestStep.startLocationId].timezone;
       if (earliestStep.type === 'move' && new Date(earliestStep.startDate).getHours() < 12) {
         minTimestamp -= DAY_24_HRS;
       }
       minTimestamp = getDayBeginTimestamp(minTimestamp, tz);
     }
-    if (latestStep?.finishLocation || latestStep?.startLocation) {
-      const tz = locations.value[latestStep.finishLocation || latestStep.startLocation].timezone;
+    
+    if (latestStep?.finishLocationId || latestStep?.startLocationId) {
+      const locationId = latestStep.finishLocationId || latestStep.startLocationId;
+      const tz = locations.value[locationId].timezone;
       maxTimestamp = getDayBeginTimestamp(maxTimestamp, tz) + DAY_24_HRS - 1;
       if (latestStep.type === 'move' && new Date(latestStep.finishDate).getHours() >= 12) {
         maxTimestamp += DAY_24_HRS;
@@ -126,17 +129,15 @@ export function useTimelineLayout(
 
     const locationTimelines: Record<string, TimelineLocation> = {};
     // Iterate locations
-    usedLocations.value.forEach((locationName, locationIndex) => {
-      const location = locations.value[locationName];
+    usedLocationIds.value.forEach((locationId, locationIndex) => {
+      const location = locations.value[locationId];
       const locationTop = LAYOUT_PADDING_Y + (locationIndex * (LOCATION_HEIGHT + LOCATIONS_GAP)) - 16;
       const labelPosition: Position = {
         top: locationTop,
         left: 0,
-        // width: LOCATION_LABEL_WIDTH,
-        // height: LOCATION_HEIGHT + LOCATIONS_GAP,
       };
       const locationTimeline: TimelineLocation = {
-        name: locationName,
+        name: location.name,
         timezone: location.timezone,
         top: locationTop,
         label: {
@@ -158,7 +159,7 @@ export function useTimelineLayout(
         // Check if there's a stay on this day
         const hasStay = steps.value.some((step) => {
           if (step.type !== 'stay') return false;
-          if (step.startLocation !== locationName) return false;
+          if (step.startLocationId !== locationId) return false;
 
           const stepBeginsOnThatDay =
             step.startTimestamp >= dayBeginTimestamp &&
@@ -175,8 +176,8 @@ export function useTimelineLayout(
         const hasMove = steps.value.some((step) => {
           if (step.type !== 'move') return false;
 
-          const sameStartLocation = step.startLocation === locationName;
-          const sameFinishLocation = step.finishLocation === locationName;
+          const sameStartLocation = step.startLocationId === locationId;
+          const sameFinishLocation = step.finishLocationId === locationId;
 
           const stepBeginsOnThatDay =
             step.startTimestamp >= dayBeginTimestamp &&
@@ -206,7 +207,7 @@ export function useTimelineLayout(
         const daylightStyle = getDaylightStyle(daylight, DAY_WIDTH, LOCATION_HEIGHT - 2);
 
         locationTimeline.days.push({
-          id: `cell-${locationName}-${date}`,
+          id: `cell-${locationId}-${date}`,
           timestamp: dayBeginTimestamp,
           date,
           label: new Date(date).toLocaleDateString('en', {day: 'numeric', month: 'short', weekday: 'short'}),
@@ -221,7 +222,7 @@ export function useTimelineLayout(
         });
       });
 
-      locationTimelines[locationName] = locationTimeline;
+      locationTimelines[location.name] = locationTimeline;
       if (locationTop > layoutHeight) {
         layoutHeight = locationTop + LOCATION_HEIGHT + LAYOUT_PADDING_Y;
       }
@@ -230,10 +231,15 @@ export function useTimelineLayout(
     // Iterate moves
     const moves: MoveBlock[] = [];
     steps.value.forEach(step => {
-      if (step.type !== 'move' || !step.finishLocation) return;
+      if (step.type !== 'move' || !step.finishLocationId) return;
 
-      const startLocationTop = locationTimelines[step.startLocation].top;
-      const finishLocationTop = locationTimelines[step.finishLocation].top;
+      const startLocation = locations.value[step.startLocationId];
+      const finishLocation = locations.value[step.finishLocationId];
+      
+      if (!startLocation || !finishLocation) return;
+
+      const startLocationTop = locationTimelines[startLocation.name].top;
+      const finishLocationTop = locationTimelines[finishLocation.name].top;
 
       const position: Position = {
         left: LOCATION_LABEL_WIDTH + ((step.startTimestamp - minTimestamp) / SCALE),

@@ -21,7 +21,7 @@ const emit = defineEmits<{
 
 const {locations} = useAppState();
 
-const startLocation = computed(() => locations.value[props.step.startLocation]);
+const startLocation = computed(() => locations.value[props.step.startLocationId]);
 
 const duration = computed(() => {
   return formatDurationDays(props.step.startDate, props.step.finishDate);
@@ -54,7 +54,7 @@ const duration = computed(() => {
     <template #content>
       <div class="card-content">
         <div class="stay-location">
-          {{ step.startLocation }}
+          {{ startLocation?.name || 'Unknown Location' }}
           <div v-if="startLocation" class="timezone-info">
             GMT{{ formatTZ(startLocation.timezone) }}
           </div>

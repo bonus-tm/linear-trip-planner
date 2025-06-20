@@ -46,14 +46,14 @@ const dialogVisible = computed({
 
 const validateAndSave = () => {
   if (!formData.value.startDate || !formData.value.finishDate ||
-    !formData.value.startLocation || !formData.value.finishLocation) {
+    !formData.value.startLocationId || !formData.value.finishLocationId) {
     localError.value = 'Please fill in all required fields';
     return;
   }
 
   // Validation - need to consider timezones for proper date comparison
-  const startTimezone = locations.value[formData.value.startLocation]?.timezone || 0;
-  const finishTimezone = locations.value[formData.value.finishLocation]?.timezone || 0;
+  const startTimezone = locations.value[formData.value.startLocationId]?.timezone || 0;
+  const finishTimezone = locations.value[formData.value.finishLocationId]?.timezone || 0;
 
   const startTimestamp = new Date(`${formData.value.startDate}${formatTZ(startTimezone)}`).getTime();
   const finishTimestamp = new Date(`${formData.value.finishDate}${formatTZ(finishTimezone)}`).getTime();
@@ -125,14 +125,14 @@ const handleCancel = () => {
         <div class="form-field">
           <label>From Location *</label>
           <LocationSelect
-            v-model="formData.startLocation"
+            v-model="formData.startLocationId"
             placeholder="Select departure location"
           />
         </div>
         <div class="form-field">
           <label>To Location *</label>
           <LocationSelect
-            v-model="formData.finishLocation"
+            v-model="formData.finishLocationId"
             placeholder="Select arrival location"
           />
         </div>

@@ -9,7 +9,7 @@ import MoveEditModal from './MoveEditModal.vue';
 import StayCard from './StayCard.vue';
 import StayEditModal from './StayEditModal.vue';
 
-const {sortedSteps, locationNames, locations, addStep, updateStep, deleteStep} = useAppState();
+const {sortedSteps, locationsList, locations, addStep, updateStep, deleteStep} = useAppState();
 
 // Modal state
 const editModalVisible = ref(false);
@@ -26,9 +26,14 @@ const addNewStep = (type: StepType) => {
   const lastStep = sortedSteps.value[sortedSteps.value.length - 1];
 
   // Determine the location for the new step
-  const newLocation = lastStep
-    ? (lastStep.type === 'move' ? lastStep.finishLocation! : lastStep.startLocation)
-    : (locationNames.value[0] || '');
+  let newLocationId: number;
+  if (lastStep) {
+    // Use the finish location of the last step if it's a move, otherwise use the start location
+    newLocationId = lastStep.type === 'move' ? lastStep.finishLocationId! : lastStep.startLocationId;
+  } else {
+    // Use the first available location
+    newLocationId = locationsList.value[0]?.id || 1;
+  }
 
   // Get the current time in the new step's location timezone
   let defaultDateTime: string;
@@ -39,7 +44,7 @@ const addNewStep = (type: StepType) => {
     defaultTimestamp = lastStep.finishTimestamp;
   } else {
     // Create new datetime in the target location's timezone
-    const locationTimezone = locations.value[newLocation]?.timezone || 0;
+    const locationTimezone = locations.value[newLocationId]?.timezone || 0;
     defaultTimestamp = Date.now();
     defaultDateTime = formatISOWithTZ(defaultTimestamp, locationTimezone);
   }
@@ -51,7 +56,7 @@ const addNewStep = (type: StepType) => {
     finishDate: defaultDateTime,
     startTimestamp: defaultTimestamp,
     finishTimestamp: defaultTimestamp,
-    startLocation: newLocation,
+    startLocationId: newLocationId,
     description: '',
   };
 

@@ -4,6 +4,7 @@ import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import type {Step} from '../types';
+import {useAppState} from '../composables/useAppState';
 import {capitalize} from '../utils/text';
 import {formatDurationTime} from '../utils/datetime';
 import MoveDateTime from './MoveDateTime.vue';
@@ -17,6 +18,11 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
   edit: [stepId: string];
 }>();
+
+const {locations} = useAppState();
+
+const startLocation = computed(() => locations.value[props.step.startLocationId]);
+const finishLocation = computed(() => locations.value[props.step.finishLocationId!]);
 
 const duration = computed(() => {
   return formatDurationTime(props.step.startTimestamp, props.step.finishTimestamp);
@@ -57,7 +63,7 @@ const sameDay = computed(() => {
     <template #content>
       <div class="card-content">
         <div class="step-start step-location">
-          {{ step.startLocation }}
+          {{ startLocation?.name || 'Unknown Location' }}
         </div>
         <div class="step-start airport">
           {{ step.startAirport }}
@@ -71,7 +77,7 @@ const sameDay = computed(() => {
         </div>
 
         <div class="step-finish step-location">
-          {{ step.finishLocation }}
+          {{ finishLocation?.name || 'Unknown Location' }}
         </div>
         <div class="step-finish airport">
           {{ step.finishAirport }}

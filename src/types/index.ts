@@ -1,4 +1,5 @@
 export interface Location {
+  id: number; // Add unique numeric identifier
   name: string;
   coordinates: { lat: number; lng: number };
   timezone: number; // -12 to +12 UTC offset
@@ -19,14 +20,14 @@ export interface Step {
   finishDate: string;
   startTimestamp: number;
   finishTimestamp: number;
-  startLocation: string; // location name
-  finishLocation?: string; // only for 'move' type
+  startLocationId: number; // changed from startLocation to use ID
+  finishLocationId?: number; // changed from finishLocation to use ID, only for 'move' type
   startAirport?: string; // optional and only for 'move' type, 3 letters
   finishAirport?: string; // optional and only for 'move' type, 3 letters
   description?: string; // optional
 }
 
-export type LocationsMap = Record<string, Location>
+export type LocationsMap = Record<number, Location>
 export type StepsList = Step[]
 
 export type Position = {

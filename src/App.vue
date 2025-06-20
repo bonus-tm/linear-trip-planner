@@ -7,7 +7,7 @@ import LocationsTable from './components/LocationsTable.vue';
 import StepsTable from './components/StepsTable.vue';
 import Timeline from './components/Timeline.vue';
 
-const {steps, error} = useAppState();
+const {steps, locations, error} = useAppState();
 
 const toast = useToast();
 watch(error, (msg: string | null) => {
@@ -36,12 +36,18 @@ watchEffect(() => {
   const months: Set<string> = new Set();
 
   if (steps.value?.[0]?.type === 'move') {
-    places.add(steps.value[0].startLocation);
+    const startLocation = locations.value[steps.value[0].startLocationId];
+    if (startLocation) {
+      places.add(startLocation.name);
+    }
   }
 
   steps.value.forEach((step) => {
     if (step.type === 'stay') {
-      places.add(step.startLocation);
+      const stayLocation = locations.value[step.startLocationId];
+      if (stayLocation) {
+        places.add(stayLocation.name);
+      }
     } else {
       months.add(step.finishDate.substring(0, 7));
     }

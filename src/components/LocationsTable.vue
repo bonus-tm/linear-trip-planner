@@ -8,15 +8,15 @@ import LocationAddModal from './LocationAddModal.vue';
 import type {Location} from '../types';
 import {formatTZ} from '../utils/datetime';
 
-const {locations, addLocation, updateLocation, deleteLocation} = useAppState();
+const {locationsList, addLocation, updateLocation, deleteLocation} = useAppState();
 
 const editLocationDialogVisible = ref(false);
 const locationToEdit = ref<Location | null>(null);
 const addLocationDialogVisible = ref(false);
 
-// Convert locations object to array for cards with coordinatesString
+// Convert locations list to cards data with coordinatesString
 const cardsData = computed(() =>
-  Object.values(locations.value).map(location => ({
+  locationsList.value.map(location => ({
     ...location,
     coordinatesString: `${location.coordinates.lat}, ${location.coordinates.lng}`,
   })),
@@ -44,18 +44,15 @@ const showEditLocationDialog = (location: Location) => {
 };
 
 const handleLocationSave = (updatedLocation: Location) => {
-  const originalName = locationToEdit.value?.name;
-  if (!originalName) return;
-
-  const success = updateLocation(originalName, updatedLocation);
+  const success = updateLocation(updatedLocation.id, updatedLocation);
   if (success) {
     editLocationDialogVisible.value = false;
     locationToEdit.value = null;
   }
 };
 
-const handleLocationDelete = (locationName: string) => {
-  const success = deleteLocation(locationName);
+const handleLocationDelete = (locationId: number) => {
+  const success = deleteLocation(locationId);
   if (success) {
     editLocationDialogVisible.value = false;
     locationToEdit.value = null;

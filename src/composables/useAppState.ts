@@ -12,34 +12,51 @@ export function useAppState() {
   // Loading states
   const isLoading = ref(false);
 
+  // Get next available location ID
+  const getNextLocationId = () => {
+    const existingIds = Object.keys(locations.value).map(Number);
+    return existingIds.length === 0 ? 1 : Math.max(...existingIds) + 1;
+  };
+
   // Location operations
-  const addLocation = (location: Location) => {
-    if (locations.value[location.name]) {
+  const addLocation = (locationData: Omit<Location, 'id'>) => {
+    // Check if location with this name already exists
+    const existingLocation = Object.values(locations.value).find(loc => loc.name === locationData.name);
+    if (existingLocation) {
       error.value = 'Location with this name already exists';
       return false;
     }
 
-    locations.value[location.name] = {...location};
+    const newId = getNextLocationId();
+    const location: Location = {
+      id: newId,
+      ...locationData
+    };
+
+    locations.value[newId] = location;
     error.value = null;
     return true;
   };
 
-  const updateLocation = (locationId: string, updatedLocation: Omit<LocationsMap[string], 'daylight'>) => {
+  const updateLocation = (locationId: number, updatedLocation: Omit<Location, 'id'>) => {
     if (!locations.value[locationId]) {
       error.value = 'Location not found';
       return false;
     }
 
-    locations.value[locationId] = {...updatedLocation};
+    locations.value[locationId] = {
+      id: locationId,
+      ...updatedLocation
+    };
 
     error.value = null;
     return true;
   };
 
-  const deleteLocation = (name: string) => {
+  const deleteLocation = (locationId: number) => {
     // Check if location is used in any step
     const isUsed = steps.value.some(step =>
-      step.startLocation === name || step.finishLocation === name,
+      step.startLocationId === locationId || step.finishLocationId === locationId,
     );
 
     if (isUsed) {
@@ -47,7 +64,7 @@ export function useAppState() {
       return false;
     }
 
-    delete locations.value[name];
+    delete locations.value[locationId];
     error.value = null;
     return true;
   };
@@ -87,7 +104,7 @@ export function useAppState() {
   };
 
   // Computed values
-  const locationNames = computed(() => Object.keys(locations.value));
+  const locationsList = computed(() => Object.values(locations.value));
   const sortedSteps = computed(() =>
     [...steps.value].sort((a, b) => {
       return a.startTimestamp - b.startTimestamp;
@@ -102,7 +119,7 @@ export function useAppState() {
     error,
 
     // Computed
-    locationNames,
+    locationsList,
     sortedSteps,
 
     // Location operations

@@ -14,7 +14,7 @@ interface Props {
 interface Emits {
   (e: 'update:visible', value: boolean): void;
   (e: 'save', location: Location): void;
-  (e: 'delete', locationName: string): void;
+  (e: 'delete', locationId: number): void;
 }
 
 const props = defineProps<Props>();
@@ -95,6 +95,7 @@ const validateAndSave = () => {
 
   // Create updated location object
   const updatedLocation: Location = {
+    id: props.location!.id, // Keep the original ID
     name: editForm.value.name.trim(),
     coordinates: { lat, lng },
     timezone: editForm.value.timezone,
@@ -105,7 +106,7 @@ const validateAndSave = () => {
 
 const handleDelete = () => {
   if (props.location) {
-    emit('delete', props.location.name);
+    emit('delete', props.location.id);
   }
 };
 

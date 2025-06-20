@@ -45,13 +45,13 @@ const dialogVisible = computed({
 });
 
 const validateAndSave = () => {
-  if (!formData.value.startDate || !formData.value.finishDate || !formData.value.startLocation) {
+  if (!formData.value.startDate || !formData.value.finishDate || !formData.value.startLocationId) {
     localError.value = 'Please fill in all required fields';
     return;
   }
 
   // Validation - need to consider timezones for proper date comparison
-  const startTimezone = locations.value[formData.value.startLocation]?.timezone || 0;
+  const startTimezone = locations.value[formData.value.startLocationId]?.timezone || 0;
   const finishTimezone = startTimezone; // Stay steps use same location
 
   const startTimestamp = new Date(`${formData.value.startDate}${formatTZ(startTimezone)}`).getTime();
@@ -114,7 +114,7 @@ const handleCancel = () => {
       <div class="form-row">
         <div class="form-field">
           <label>Location *</label>
-          <LocationSelect v-model="formData.startLocation"/>
+          <LocationSelect v-model="formData.startLocationId"/>
         </div>
       </div>
 
