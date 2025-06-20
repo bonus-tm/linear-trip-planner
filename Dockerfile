@@ -1,5 +1,5 @@
 # build
-FROM node:20-alpine
+FROM node:22-alpine
 
 COPY . /app
 WORKDIR /app
