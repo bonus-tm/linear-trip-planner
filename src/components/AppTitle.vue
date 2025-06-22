@@ -39,9 +39,27 @@ watchEffect(() => {
     const [y, m] = monthsUniq[0].split('-');
     const d = new Date(parseInt(y), parseInt(m) - 1, 1);
     tripMonth.value = d.toLocaleDateString('en', {month: 'long', year: 'numeric'});
-  } else {
-    // TODO When trip spans several months, show the first and the last with mdash in between
-    // TODO If same year then show it once, else "monF yearF — monL yearL"
+  } else if (monthsUniq.length > 1) {
+    const first = monthsUniq[0];
+    const last = monthsUniq[monthsUniq.length - 1];
+    
+    const [firstYear, firstMonth] = first.split('-');
+    const [lastYear, lastMonth] = last.split('-');
+    
+    const firstDate = new Date(parseInt(firstYear), parseInt(firstMonth) - 1, 1);
+    const lastDate = new Date(parseInt(lastYear), parseInt(lastMonth) - 1, 1);
+    
+    if (firstYear === lastYear) {
+      // Same year: "January — March 2024"
+      const firstMonthName = firstDate.toLocaleDateString('en', {month: 'long'});
+      const lastMonthName = lastDate.toLocaleDateString('en', {month: 'long'});
+      tripMonth.value = `${firstMonthName}&thinsp;—&thinsp;${lastMonthName} ${firstYear}`;
+    } else {
+      // Different years: "December 2023 — February 2024"
+      const firstMonthYear = firstDate.toLocaleDateString('en', {month: 'long', year: 'numeric'});
+      const lastMonthYear = lastDate.toLocaleDateString('en', {month: 'long', year: 'numeric'});
+      tripMonth.value = `${firstMonthYear}&thinsp;—&thinsp;${lastMonthYear}`;
+    }
   }
 
   if (tripPlaces.value && tripMonth.value) {
@@ -57,7 +75,7 @@ watchEffect(() => {
 <template>
   <h1 v-if="tripPlaces && tripMonth">
     <span class="places" v-html="tripPlaces"/>
-    <span class="month">{{ tripMonth }}</span>
+    <span class="month" v-html="tripMonth"/>
   </h1>
   <h1 v-else>
     {{ defaultAppName }}
