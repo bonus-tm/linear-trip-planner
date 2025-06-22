@@ -15,7 +15,7 @@ defineProps<{ day: DayBlock }>();
       v-if="day.daylight?.polar_night && !day.isEmpty"
       class="polar-night-indicator"
     >
-      ❄️
+      <span class="pi pi-moon"/>
     </div>
     <div class="date-label">
       {{ day.label }}
@@ -58,6 +58,13 @@ defineProps<{ day: DayBlock }>();
   transform: translate(-50%, -50%);
   font-size: 1.2rem;
   z-index: 4;
+
+  & > .pi {
+    font-size: 0.75rem;
+    position: relative;
+    top: -2px;
+    color: var(--color-border);
+  }
 }
 
 .date-label {
@@ -79,6 +86,7 @@ defineProps<{ day: DayBlock }>();
   .empty & {
     display: none;
   }
+
   .weekend & {
     color: var(--color-weekend);
   }

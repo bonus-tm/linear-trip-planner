@@ -23,6 +23,8 @@ const DAY_24_HRS = 24 * 60 * 60 * 1000;
 const MOVE_TIME_LABEL_MARGIN = 2;
 
 const widthsOfDay = [20, 30, 40, 60, 90, 120, 180, 240];
+const dayMinWidth = widthsOfDay[0];
+const dayMaxWidth = widthsOfDay.at(-1) ?? 240;
 const defaultZoomLevel = 5;
 
 // Calculate daylight bar positioning within each cell
@@ -82,7 +84,13 @@ export function useTimelineLayout(
     if (container.value) {
       const containerWidth = container.value.getBoundingClientRect().width;
       const labelWidth = getLocationsLabelWidth();
-      dayWidth.value = Math.trunc((containerWidth - labelWidth) / daysCount);
+      let width = Math.trunc((containerWidth - labelWidth) / daysCount);
+      if (width > dayMaxWidth) {
+        width = dayMaxWidth;
+      } else if (width < dayMinWidth) {
+        width = dayMinWidth;
+      }
+      dayWidth.value = width;
     }
   };
 
@@ -136,6 +144,8 @@ export function useTimelineLayout(
     return Array.from(locationIdSet).filter(id => locations.value[id]);
   });
 
+  // TODO split to two computed properties — minTimestamp and maxTimestamp
+  // TODO watch minTimestamp and maxTimestamp and update zoom when zoom = fit
   /**
    * Find the earliest and the latest timestamps of days in steps list
    */
