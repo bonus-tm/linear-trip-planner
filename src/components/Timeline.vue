@@ -22,55 +22,53 @@ const {layout, zoomIn, zoomOut, zoomToFit, isFitZoom, isMaxZoom, isMinZoom} = us
     <p v-if="layout.width === 0" class="no-data-message">
       Add locations and steps to see your travel timeline
     </p>
-    <div class="zoom-controls">
-      <Button
-        :severity="isFitZoom ? 'contrast' : 'secondary'"
-        icon="pi pi-arrows-h"
-        label="Fit"
-        size="small"
-        @click="zoomToFit"
-      />
-      <ButtonGroup>
+    <template v-else>
+      <div class="zoom-controls">
         <Button
-          :disabled="isMinZoom"
-          icon="pi pi-search-minus"
-          severity="secondary"
+          :severity="isFitZoom ? 'contrast' : 'secondary'"
+          icon="pi pi-arrows-h"
+          label="Fit"
           size="small"
-          @click="zoomOut"
+          @click="zoomToFit"
         />
-        <Button
-          :disabled="isMaxZoom"
-          icon="pi pi-search-plus"
-          severity="secondary"
-          size="small"
-          @click="zoomIn"
-        />
-      </ButtonGroup>
-    </div>
-    <div
-      v-if="(layout.width ?? 0) > 0"
-      ref="wrapper"
-      class="timeline-wrapper"
-    >
-      <div
-        :style="{
+        <ButtonGroup>
+          <Button
+            :disabled="isMinZoom"
+            icon="pi pi-search-minus"
+            severity="secondary"
+            size="small"
+            @click="zoomOut"
+          />
+          <Button
+            :disabled="isMaxZoom"
+            icon="pi pi-search-plus"
+            severity="secondary"
+            size="small"
+            @click="zoomIn"
+          />
+        </ButtonGroup>
+      </div>
+      <div ref="wrapper" class="timeline-wrapper">
+        <div
+          :style="{
             width: `${layout.width}px`,
             height: `${layout.height}px`
           }"
-        class="timeline-canvas"
-      >
-        <TimelineLocation
-          v-for="location in layout.locations"
-          :key="location.name"
-          :location="location"
-        />
-        <MoveBlock
-          v-for="move in layout.moves"
-          :key="move.stepId"
-          :move="move"
-        />
+          class="timeline-canvas"
+        >
+          <TimelineLocation
+            v-for="location in layout.locations"
+            :key="location.name"
+            :location="location"
+          />
+          <MoveBlock
+            v-for="move in layout.moves"
+            :key="move.stepId"
+            :move="move"
+          />
+        </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -80,6 +78,7 @@ const {layout, zoomIn, zoomOut, zoomToFit, isFitZoom, isMaxZoom, isMinZoom} = us
   padding: 1rem;
   color: var(--color-secondary);
   font-style: italic;
+  text-align: center;
   transition: color 0.3s ease;
 }
 
