@@ -92,3 +92,5 @@ export interface TimelineLayout {
   locations: Record<string, TimelineLocation>;
   moves: MoveBlock[];
 }
+
+export type ZoomLevel = number | 'fit';

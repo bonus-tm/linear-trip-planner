@@ -1,4 +1,5 @@
-import {computed, type Ref} from 'vue';
+import {computed, ref, type Ref, type ShallowRef, watchEffect} from 'vue';
+import {useLocalStorage, useThrottleFn} from '@vueuse/core';
 import type {
   CssStyle,
   DaylightInfo,
@@ -8,6 +9,7 @@ import type {
   StepsList,
   TimelineLayout,
   TimelineLocation,
+  ZoomLevel,
 } from '../types';
 import {formatDurationTime, getDatesBetween, getDayBeginTimestamp, isWeekendDay} from '../utils/datetime';
 import {convertPositionToStyle} from '../utils/style';
@@ -17,11 +19,11 @@ import {calculateDaylight} from '../utils/daylight';
 const LAYOUT_PADDING_Y = 30;
 const LOCATION_HEIGHT = 20;
 const LOCATIONS_GAP = 50;
-const LOCATION_LABEL_WIDTH = 200;
 const DAY_24_HRS = 24 * 60 * 60 * 1000;
-const DAY_WIDTH = 120;
-const SCALE = DAY_24_HRS / DAY_WIDTH; // ms per px
 const MOVE_TIME_LABEL_MARGIN = 2;
+
+const widthsOfDay = [20, 30, 40, 60, 90, 120, 180, 240];
+const defaultZoomLevel = 5;
 
 // Calculate daylight bar positioning within each cell
 const getDaylightStyle = (daylight: DaylightInfo, cellWidth: number, cellHeight: number): CssStyle => {
@@ -54,8 +56,71 @@ const getDaylightStyle = (daylight: DaylightInfo, cellWidth: number, cellHeight:
 export function useTimelineLayout(
   locations: Ref<LocationsMap>,
   steps: Ref<StepsList>,
+  container: ShallowRef<HTMLDivElement | null>,
 ) {
-  // const containerRef = ref<HTMLElement>();
+  const dayWidth = ref(120);
+  const zoomLevel = useLocalStorage<ZoomLevel>('trip-planner-zoom', 'fit');
+  const isMaxZoom = computed(() => zoomLevel.value === widthsOfDay.length - 1);
+  const isMinZoom = computed(() => zoomLevel.value === 0);
+  const isFitZoom = computed(() => zoomLevel.value === 'fit');
+
+  const zoomIn = () => {
+    const i = widthsOfDay.findIndex((w) => w > dayWidth.value);
+    zoomLevel.value = i !== -1 ? i : widthsOfDay.length - 1;
+  };
+
+  const zoomOut = () => {
+    const i = widthsOfDay.findLastIndex((w) => w < dayWidth.value);
+    zoomLevel.value = i !== -1 ? i : 0;
+  };
+
+  const zoomToFit = () => {
+    zoomLevel.value = 'fit';
+    const daysCount = Math.round(
+      (layout.value.maxTimestamp - layout.value.minTimestamp) / DAY_24_HRS,
+    );
+    if (container.value) {
+      const containerWidth = container.value.getBoundingClientRect().width;
+      const labelWidth = getLocationsLabelWidth();
+      dayWidth.value = Math.trunc((containerWidth - labelWidth) / daysCount);
+    }
+  };
+
+  const resizeObserver = new ResizeObserver(
+    useThrottleFn(zoomToFit, 100),
+  );
+  watchEffect(() => {
+    if (container.value) {
+      if (zoomLevel.value === 'fit') {
+        resizeObserver.observe(container.value);
+      } else {
+        resizeObserver.unobserve(container.value);
+        zoomLevel.value = zoomLevel.value >= widthsOfDay.length
+          ? widthsOfDay.length - 1
+          : (zoomLevel.value < 0
+            ? 0
+            : zoomLevel.value);
+        if (!widthsOfDay[zoomLevel.value]) {
+          zoomLevel.value = defaultZoomLevel;
+        }
+        dayWidth.value = widthsOfDay[zoomLevel.value];
+      }
+    }
+  });
+
+  const getLocationsLabelWidth = () => {
+    let width = 0;
+    if (!container.value) {
+      return 0;
+    }
+    container.value.querySelectorAll('.location-name').forEach((el) => {
+      const elWidth = el.getBoundingClientRect().width;
+      if (elWidth > width) {
+        width = elWidth;
+      }
+    });
+    return width;
+  };
 
   // Get unique location IDs used in steps
   const usedLocationIds = computed(() => {
@@ -99,7 +164,7 @@ export function useTimelineLayout(
       }
       minTimestamp = getDayBeginTimestamp(minTimestamp, tz);
     }
-    
+
     if (latestStep?.finishLocationId || latestStep?.startLocationId) {
       const locationId = latestStep.finishLocationId || latestStep.startLocationId;
       const tz = locations.value[locationId].timezone;
@@ -191,11 +256,12 @@ export function useTimelineLayout(
         });
 
         const isEmpty = !hasStay && !hasMove;
+        const labelWidth = getLocationsLabelWidth();
 
         const position: Position = {
-          left: LOCATION_LABEL_WIDTH + ((dayBeginTimestamp - minTimestamp) / SCALE),
+          left: labelWidth + ((dayBeginTimestamp - minTimestamp) / (DAY_24_HRS / dayWidth.value)),
           top: locationTop,
-          width: DAY_WIDTH,
+          width: dayWidth.value,
           height: LOCATION_HEIGHT - 2,
         };
         const daylight = calculateDaylight(
@@ -204,7 +270,7 @@ export function useTimelineLayout(
           date,
           location.timezone,
         );
-        const daylightStyle = getDaylightStyle(daylight, DAY_WIDTH, LOCATION_HEIGHT - 2);
+        const daylightStyle = getDaylightStyle(daylight, dayWidth.value, LOCATION_HEIGHT - 2);
 
         locationTimeline.days.push({
           id: `cell-${locationId}-${date}`,
@@ -235,16 +301,18 @@ export function useTimelineLayout(
 
       const startLocation = locations.value[step.startLocationId];
       const finishLocation = locations.value[step.finishLocationId];
-      
+
       if (!startLocation || !finishLocation) return;
 
       const startLocationTop = locationTimelines[startLocation.name].top;
       const finishLocationTop = locationTimelines[finishLocation.name].top;
 
+      const labelWidth = getLocationsLabelWidth();
+
       const position: Position = {
-        left: LOCATION_LABEL_WIDTH + ((step.startTimestamp - minTimestamp) / SCALE),
+        left: labelWidth + ((step.startTimestamp - minTimestamp) / (DAY_24_HRS / dayWidth.value)),
         top: Math.min(startLocationTop, finishLocationTop),
-        width: (step.finishTimestamp - step.startTimestamp) / SCALE,
+        width: (step.finishTimestamp - step.startTimestamp) / (DAY_24_HRS / dayWidth.value),
         height: Math.abs(finishLocationTop - startLocationTop) + LOCATION_HEIGHT,
       };
       const beginTimePosition: Position = {
@@ -286,7 +354,7 @@ export function useTimelineLayout(
     return {
       minTimestamp,
       maxTimestamp,
-      width: Math.round((maxTimestamp - minTimestamp) / SCALE),
+      width: Math.round((maxTimestamp - minTimestamp) / (DAY_24_HRS / dayWidth.value)),
       height: layoutHeight,
       locations: locationTimelines,
       moves,
@@ -295,5 +363,12 @@ export function useTimelineLayout(
 
   return {
     layout,
+    zoomLevel,
+    isMinZoom,
+    isMaxZoom,
+    isFitZoom,
+    zoomIn,
+    zoomOut,
+    zoomToFit,
   };
 } 

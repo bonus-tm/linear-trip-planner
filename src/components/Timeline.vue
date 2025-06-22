@@ -1,11 +1,20 @@
 <script lang="ts" setup>
+import {useTemplateRef} from 'vue';
+import Button from 'primevue/button';
+import ButtonGroup from 'primevue/buttongroup';
 import {useAppState} from '../composables/useAppState';
 import {useTimelineLayout} from '../composables/useTimelineLayout';
 import TimelineLocation from './TimelineLocation.vue';
 import MoveBlock from './MoveBlock.vue';
 
+const timelineContainer = useTemplateRef('wrapper');
+
 const {locations, steps} = useAppState();
-const {layout} = useTimelineLayout(locations, steps);
+const {layout, zoomIn, zoomOut, zoomToFit, isFitZoom, isMaxZoom, isMinZoom} = useTimelineLayout(
+  locations,
+  steps,
+  timelineContainer,
+);
 </script>
 
 <template>
@@ -13,9 +22,34 @@ const {layout} = useTimelineLayout(locations, steps);
     <p v-if="layout.width === 0" class="no-data-message">
       Add locations and steps to see your travel timeline
     </p>
+    <div class="zoom-controls">
+      <Button
+        :severity="isFitZoom ? 'contrast' : 'secondary'"
+        icon="pi pi-arrows-h"
+        label="Fit"
+        size="small"
+        @click="zoomToFit"
+      />
+      <ButtonGroup>
+        <Button
+          :disabled="isMinZoom"
+          icon="pi pi-search-minus"
+          severity="secondary"
+          size="small"
+          @click="zoomOut"
+        />
+        <Button
+          :disabled="isMaxZoom"
+          icon="pi pi-search-plus"
+          severity="secondary"
+          size="small"
+          @click="zoomIn"
+        />
+      </ButtonGroup>
+    </div>
     <div
       v-if="(layout.width ?? 0) > 0"
-      ref="containerRef"
+      ref="wrapper"
       class="timeline-wrapper"
     >
       <div
@@ -50,7 +84,18 @@ const {layout} = useTimelineLayout(locations, steps);
 }
 
 .timeline-container {
-  background-color: var(--color-surface)
+  background-color: var(--color-surface);
+  position: relative;
+
+  .zoom-controls {
+    position: absolute;
+    top: -0.5rem;
+    right: 1rem;
+    transform: translateY(-100%);
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+  }
 }
 
 .timeline-wrapper {
