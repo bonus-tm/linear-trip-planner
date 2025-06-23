@@ -64,6 +64,7 @@ const handleNewTravel = () => {
   });
 };
 
+// @ts-ignore
 const version = ref(__APP_VERSION__);
 </script>
 
