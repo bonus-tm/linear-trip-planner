@@ -9,15 +9,19 @@ import type { Location } from '../types';
 interface Props {
   visible: boolean;
   location: Location | null;
+  isCreating?: boolean;
 }
 
 interface Emits {
   (e: 'update:visible', value: boolean): void;
-  (e: 'save', location: Location): void;
+  (e: 'save', location: Location | { name: string; timezone: number; coordinates?: { lat: number; lng: number } }): void;
   (e: 'delete', locationId: number): void;
+  (e: 'close'): void;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  isCreating: false,
+});
 const emit = defineEmits<Emits>();
 
 const localVisible = ref(false);
@@ -38,13 +42,22 @@ const error = ref<string | null>(null);
 // Watch for visibility changes
 watch(() => props.visible, (newValue) => {
   localVisible.value = newValue;
-  if (newValue && props.location) {
-    // Initialize form with location data
-    editForm.value = {
-      name: props.location.name,
-      coordinatesString: `${props.location.coordinates.lat}, ${props.location.coordinates.lng}`,
-      timezone: props.location.timezone,
-    };
+  if (newValue) {
+    if (props.isCreating) {
+      // Reset form for new location
+      editForm.value = {
+        name: '',
+        coordinatesString: '',
+        timezone: 0,
+      };
+    } else if (props.location) {
+      // Initialize form with location data
+      editForm.value = {
+        name: props.location.name,
+        coordinatesString: `${props.location.coordinates.lat}, ${props.location.coordinates.lng}`,
+        timezone: props.location.timezone,
+      };
+    }
     error.value = null;
   }
 });
@@ -62,57 +75,104 @@ const validateAndSave = () => {
     return;
   }
 
-  if (!editForm.value.coordinatesString.trim()) {
-    error.value = 'Coordinates cannot be empty';
-    return;
+  if (props.isCreating) {
+    // For creating, coordinates are optional
+    if (editForm.value.coordinatesString.trim()) {
+      // Parse coordinates if provided
+      const parts = editForm.value.coordinatesString.split(',').map(part => part.trim());
+      if (parts.length !== 2) {
+        error.value = 'Coordinates must be in format "latitude, longitude"';
+        return;
+      }
+
+      const lat = parseFloat(parts[0]);
+      const lng = parseFloat(parts[1]);
+
+      if (isNaN(lat) || isNaN(lng)) {
+        error.value = 'Coordinates must be valid numbers';
+        return;
+      }
+
+      // Validate coordinate ranges
+      if (lat < -90 || lat > 90) {
+        error.value = 'Latitude must be between -90 and 90';
+        return;
+      }
+
+      if (lng < -180 || lng > 180) {
+        error.value = 'Longitude must be between -180 and 180';
+        return;
+      }
+
+      emit('save', {
+        name: editForm.value.name.trim(),
+        timezone: editForm.value.timezone,
+        coordinates: { lat, lng }
+      });
+    } else {
+      // No coordinates provided for new location
+      emit('save', {
+        name: editForm.value.name.trim(),
+        timezone: editForm.value.timezone
+      });
+    }
+  } else {
+    // For editing, if coordinates are empty, default to "0, 0"
+    if (!editForm.value.coordinatesString.trim()) {
+      editForm.value.coordinatesString = '0, 0';
+    }
+
+    // Parse coordinates
+    const parts = editForm.value.coordinatesString.split(',').map(part => part.trim());
+    if (parts.length !== 2) {
+      error.value = 'Coordinates must be in format "latitude, longitude"';
+      return;
+    }
+
+    const lat = parseFloat(parts[0]);
+    const lng = parseFloat(parts[1]);
+
+    if (isNaN(lat) || isNaN(lng)) {
+      error.value = 'Coordinates must be valid numbers';
+      return;
+    }
+
+    // Validate coordinate ranges
+    if (lat < -90 || lat > 90) {
+      error.value = 'Latitude must be between -90 and 90';
+      return;
+    }
+
+    if (lng < -180 || lng > 180) {
+      error.value = 'Longitude must be between -180 and 180';
+      return;
+    }
+
+    // Create updated location object
+    const updatedLocation: Location = {
+      id: props.location!.id, // Keep the original ID
+      name: editForm.value.name.trim(),
+      coordinates: { lat, lng },
+      timezone: editForm.value.timezone,
+    };
+
+    emit('save', updatedLocation);
   }
-
-  // Parse coordinates
-  const parts = editForm.value.coordinatesString.split(',').map(part => part.trim());
-  if (parts.length !== 2) {
-    error.value = 'Coordinates must be in format "latitude, longitude"';
-    return;
-  }
-
-  const lat = parseFloat(parts[0]);
-  const lng = parseFloat(parts[1]);
-
-  if (isNaN(lat) || isNaN(lng)) {
-    error.value = 'Coordinates must be valid numbers';
-    return;
-  }
-
-  // Validate coordinate ranges
-  if (lat < -90 || lat > 90) {
-    error.value = 'Latitude must be between -90 and 90';
-    return;
-  }
-
-  if (lng < -180 || lng > 180) {
-    error.value = 'Longitude must be between -180 and 180';
-    return;
-  }
-
-  // Create updated location object
-  const updatedLocation: Location = {
-    id: props.location!.id, // Keep the original ID
-    name: editForm.value.name.trim(),
-    coordinates: { lat, lng },
-    timezone: editForm.value.timezone,
-  };
-
-  emit('save', updatedLocation);
+  
+  localVisible.value = false;
 };
 
 const handleDelete = () => {
   if (props.location) {
     emit('delete', props.location.id);
+    localVisible.value = false;
   }
 };
 
 const handleCancel = () => {
-  localVisible.value = false;
   error.value = null;
+  emit('close');
+  localVisible.value = false;
 };
 </script>
 
@@ -121,20 +181,22 @@ const handleCancel = () => {
     v-model:visible="localVisible"
     :modal="true"
     :style="{ width: '450px' }"
-    header="Edit Location"
+    :header="isCreating ? 'New Location' : 'Edit Location'"
   >
     <div class="edit-form">
       <div class="form-field">
-        <label for="locationName">Location Name</label>
+        <label for="locationName">Location Name *</label>
         <InputText
           id="locationName"
           v-model="editForm.name"
+          :autofocus="isCreating"
           placeholder="Enter location name"
+          @keyup.enter="validateAndSave"
         />
       </div>
 
       <div class="form-field">
-        <label for="timezone">Timezone</label>
+        <label for="timezone">Timezone *</label>
         <Select
           id="timezone"
           v-model="editForm.timezone"
@@ -147,9 +209,9 @@ const handleCancel = () => {
 
       <div class="form-field">
         <label for="coordinates">
-          Coordinates
+          Coordinates{{ isCreating ? ' (optional)' : ' *' }}
           <a
-            v-if="location"
+            v-if="!isCreating && location"
             :href="`https://www.google.com/maps/@${location.coordinates.lat},${location.coordinates.lng},11z`"
             class="map-link"
             rel="noopener noreferrer"
@@ -175,6 +237,7 @@ const handleCancel = () => {
       <div class="modal-footer">
         <div class="left-actions">
           <Button
+            v-if="!isCreating"
             icon="pi pi-trash"
             label="Delete"
             severity="danger"
@@ -189,7 +252,8 @@ const handleCancel = () => {
             @click="handleCancel"
           />
           <Button
-            label="Save"
+            :disabled="!editForm.name.trim()"
+            :label="isCreating ? 'Create' : 'Save'"
             @click="validateAndSave"
           />
         </div>

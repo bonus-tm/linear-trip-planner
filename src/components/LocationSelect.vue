@@ -2,7 +2,7 @@
 import {ref, computed} from 'vue';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
-import LocationAddModal from './LocationAddModal.vue';
+import LocationEditModal from './LocationEditModal.vue';
 import {useAppState} from '../composables/useAppState';
 
 const selectedLocationId = defineModel<number>();
@@ -24,10 +24,10 @@ const locationOptions = computed(() =>
 const showLocationModal = ref(false);
 
 // Handle new location creation
-const handleLocationCreated = (locationData: { name: string; timezone: number }) => {
+const handleLocationCreated = (locationData: { name: string; timezone: number; coordinates?: { lat: number; lng: number } }) => {
   const newLocation = {
     name: locationData.name,
-    coordinates: {lat: 0, lng: 0},
+    coordinates: locationData.coordinates || {lat: 0, lng: 0},
     timezone: locationData.timezone,
   };
   addLocation(newLocation);
@@ -65,8 +65,10 @@ const handleLocationCreated = (locationData: { name: string; timezone: number })
 
   <!-- Location Add Modal -->
   <teleport to="body">
-    <LocationAddModal
+    <LocationEditModal
       v-model:visible="showLocationModal"
+      :location="null"
+      :is-creating="true"
       @save="handleLocationCreated"
     />
   </teleport>

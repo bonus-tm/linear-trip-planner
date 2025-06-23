@@ -74,7 +74,6 @@ const duration = computed(() => {
 
 <style scoped>
 .stay-card {
-  background-color: var(--color-stay-row);
   transition: background-color 0.3s ease;
 }
 

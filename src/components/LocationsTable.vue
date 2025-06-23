@@ -4,7 +4,6 @@ import {useAppState} from '../composables/useAppState';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import LocationEditModal from './LocationEditModal.vue';
-import LocationAddModal from './LocationAddModal.vue';
 import type {Location} from '../types';
 import {formatTZ} from '../utils/datetime';
 
@@ -23,19 +22,8 @@ const cardsData = computed(() =>
 );
 
 const showAddLocationDialog = () => {
+  locationToEdit.value = null;
   addLocationDialogVisible.value = true;
-};
-
-const handleLocationAdd = (locationData: { name: string; timezone: number }) => {
-  const success = addLocation({
-    name: locationData.name,
-    coordinates: {lat: 0, lng: 0},
-    timezone: locationData.timezone,
-  });
-
-  if (success) {
-    addLocationDialogVisible.value = false;
-  }
 };
 
 const showEditLocationDialog = (location: Location) => {
@@ -43,11 +31,28 @@ const showEditLocationDialog = (location: Location) => {
   editLocationDialogVisible.value = true;
 };
 
-const handleLocationSave = (updatedLocation: Location) => {
-  const success = updateLocation(updatedLocation.id, updatedLocation);
-  if (success) {
-    editLocationDialogVisible.value = false;
-    locationToEdit.value = null;
+const handleLocationSave = (locationData: Location | {
+  name: string;
+  timezone: number;
+  coordinates?: { lat: number; lng: number }
+}) => {
+  if ('id' in locationData) {
+    // Editing existing location
+    const success = updateLocation(locationData.id, locationData);
+    if (success) {
+      editLocationDialogVisible.value = false;
+      locationToEdit.value = null;
+    }
+  } else {
+    // Creating new location
+    const success = addLocation({
+      name: locationData.name,
+      coordinates: locationData.coordinates || {lat: 0, lng: 0},
+      timezone: locationData.timezone,
+    });
+    if (success) {
+      addLocationDialogVisible.value = false;
+    }
   }
 };
 
@@ -67,6 +72,7 @@ const handleLocationDelete = (locationId: number) => {
       <Button
         icon="pi pi-plus"
         label="Add Location"
+        severity="secondary"
         size="small"
         @click="showAddLocationDialog"
       />
@@ -95,27 +101,34 @@ const handleLocationDelete = (locationId: number) => {
               GMT{{ formatTZ(location.timezone) }}
             </div>
 
-            <div class="coordinates">
-              <a
-                :href="`https://www.google.com/maps/@${location.coordinates.lat},${location.coordinates.lng},11z`"
-                class="map-link"
-                rel="noopener noreferrer"
-                target="_blank"
-                title="Open in Google Maps"
-              >
-                <span class="pi pi-map-marker"/>
-                {{ location.coordinatesString }}
-              </a>
-            </div>
+            <a
+              :href="`https://www.google.com/maps/@${location.coordinates.lat},${location.coordinates.lng},11z`"
+              class="map-link"
+              rel="noopener noreferrer"
+              target="_blank"
+              title="Open in Google Maps"
+            >
+              <div class="marker"><span class="pi pi-map-marker"/></div>
+              <div class="coordinate">
+                {{ Math.abs(location.coordinates.lat) }}°
+                {{ location.coordinates.lat >= 0 ? 'N' : 'S' }}
+              </div>
+              <div class="coordinate">
+                {{ Math.abs(location.coordinates.lng) }}°
+                {{ location.coordinates.lng >= 0 ? 'E' : 'W' }}
+              </div>
+            </a>
           </div>
         </template>
       </Card>
     </div>
 
     <!-- Add Location Modal -->
-    <LocationAddModal
+    <LocationEditModal
       v-model:visible="addLocationDialogVisible"
-      @save="handleLocationAdd"
+      :is-creating="true"
+      :location="null"
+      @save="handleLocationSave"
     />
 
     <!-- Edit Location Modal -->
@@ -176,6 +189,10 @@ h2 {
 }
 
 .map-link {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  column-gap: 0.25rem;
   text-decoration: none;
   padding: 0.25em 0.5em;
   border-radius: 4px;
@@ -188,8 +205,19 @@ h2 {
     background-color: var(--color-link-hover, rgba(0, 123, 255, 0.1));
   }
 
+  .marker {
+    grid-area: 1/1/3/2;
+    align-self: center;
+  }
+
   .pi {
     font-size: 0.875em;
+  }
+
+  .coordinate {
+    font-variant: tabular-nums;
+    line-height: 1;
+    align-self: baseline;
   }
 }
 </style> 
