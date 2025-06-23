@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {watch} from 'vue';
+import {ref, watch} from 'vue';
 import Toast from 'primevue/toast';
 import Button from 'primevue/button';
 import ConfirmDialog from 'primevue/confirmdialog';
@@ -63,6 +63,8 @@ const handleNewTravel = () => {
     },
   });
 };
+
+const version = ref(__APP_VERSION__);
 </script>
 
 <template>
@@ -90,6 +92,7 @@ const handleNewTravel = () => {
         </svg>
         &nbsp;GitHub
       </a>
+      <span class="app-ver">v{{ version }}</span>
     </footer>
 
     <Toast
@@ -146,6 +149,11 @@ footer {
       width: 14px;
       height: 14px;
     }
+  }
+
+  .app-ver {
+    opacity: 0.5;
+    margin-inline-start: 1em;
   }
 }
 </style>
