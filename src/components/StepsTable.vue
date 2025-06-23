@@ -14,6 +14,7 @@ const {sortedSteps, locationsList, locations, addStep, updateStep, deleteStep} =
 // Modal state
 const editModalVisible = ref(false);
 const editingStep = ref<Step | null>(null);
+const isCreatingNewStep = ref(false);
 
 // Convert steps to cards data with computed properties for editing
 const cardsData = computed(() =>
@@ -49,8 +50,9 @@ const addNewStep = (type: StepType) => {
     defaultDateTime = formatISOWithTZ(defaultTimestamp, locationTimezone);
   }
 
-  // Prefill values based on requirements
-  const newStep: Omit<Step, 'id'> = {
+  // Create a draft step without adding it to the list
+  const draftStep: Step = {
+    id: '', // Temporary ID, will be generated when saved
     type,
     startDate: defaultDateTime,
     finishDate: defaultDateTime,
@@ -58,37 +60,47 @@ const addNewStep = (type: StepType) => {
     finishTimestamp: defaultTimestamp,
     startLocationId: newLocationId,
     description: '',
+    ...(type === 'move' && { finishLocationId: newLocationId }),
   };
 
-  addStep(newStep);
-
-  // Find the newly added step and open edit modal
-  // The new step should be the last one in the sorted array after adding
-  const newlyAddedStep = sortedSteps.value[sortedSteps.value.length - 1];
-  if (newlyAddedStep) {
-    editingStep.value = newlyAddedStep;
-    editModalVisible.value = true;
-  }
+  // Set up modal for creating new step
+  editingStep.value = draftStep;
+  isCreatingNewStep.value = true;
+  editModalVisible.value = true;
 };
 
 const handleEditStep = (stepId: string) => {
   const step = sortedSteps.value.find(s => s.id === stepId);
   if (step) {
     editingStep.value = step;
+    isCreatingNewStep.value = false;
     editModalVisible.value = true;
   }
 };
 
 const handleSaveStep = (stepData: Partial<Step>) => {
-  if (editingStep.value?.id) {
+  if (isCreatingNewStep.value) {
+    // Create new step - cast to the required type since we know it has all required fields
+    addStep(stepData as Omit<Step, 'id'>);
+  } else if (editingStep.value?.id) {
+    // Update existing step
     updateStep(editingStep.value.id, stepData);
   }
   editingStep.value = null;
+  isCreatingNewStep.value = false;
 };
 
 const handleDeleteStep = (stepId: string) => {
-  deleteStep(stepId);
+  if (!isCreatingNewStep.value) {
+    deleteStep(stepId);
+  }
   editingStep.value = null;
+  isCreatingNewStep.value = false;
+};
+
+const handleModalClose = () => {
+  editingStep.value = null;
+  isCreatingNewStep.value = false;
 };
 </script>
 
@@ -137,16 +149,20 @@ const handleDeleteStep = (stepId: string) => {
       v-if="editingStep && editingStep.type === 'stay'"
       v-model:visible="editModalVisible"
       :step="editingStep"
+      :is-creating="isCreatingNewStep"
       @delete="handleDeleteStep"
       @save="handleSaveStep"
+      @close="handleModalClose"
     />
 
     <MoveEditModal
       v-if="editingStep && editingStep.type === 'move'"
       v-model:visible="editModalVisible"
       :step="editingStep"
+      :is-creating="isCreatingNewStep"
       @delete="handleDeleteStep"
       @save="handleSaveStep"
+      @close="handleModalClose"
     />
   </div>
 </template>

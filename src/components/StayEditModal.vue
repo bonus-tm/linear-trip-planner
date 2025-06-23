@@ -13,13 +13,18 @@ import LocationSelect from './LocationSelect.vue';
 interface Props {
   visible: boolean;
   step: Step | null;
+  isCreating?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  isCreating: false,
+});
+
 const emit = defineEmits<{
   'update:visible': [value: boolean];
   save: [stepData: Partial<Step>];
   delete: [stepId: string];
+  close: [];
 }>();
 
 const {locations} = useAppState();
@@ -79,6 +84,7 @@ const confirmDelete = () => {
 
 const handleCancel = () => {
   localError.value = null;
+  emit('close');
   dialogVisible.value = false;
 };
 </script>
@@ -88,7 +94,7 @@ const handleCancel = () => {
     v-model:visible="dialogVisible"
     :modal="true"
     :style="{ width: '500px' }"
-    header="Edit Stay"
+    :header="isCreating ? 'Add Stay' : 'Edit Stay'"
   >
     <div class="edit-form">
       <div class="form-row">
@@ -137,6 +143,7 @@ const handleCancel = () => {
     <template #footer>
       <div class="modal-footer">
         <Button
+          v-if="!isCreating"
           label="Delete"
           severity="danger"
           text
@@ -149,7 +156,7 @@ const handleCancel = () => {
             @click="handleCancel"
           />
           <Button
-            label="Save"
+            :label="isCreating ? 'Add' : 'Save'"
             severity="success"
             @click="validateAndSave"
           />
@@ -186,7 +193,6 @@ const handleCancel = () => {
 
 .modal-footer {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   width: 100%;
 }
@@ -194,6 +200,7 @@ const handleCancel = () => {
 .footer-actions {
   display: flex;
   gap: 0.5rem;
+  margin-inline-start: auto;
 }
 
 @media (max-width: 768px) {
