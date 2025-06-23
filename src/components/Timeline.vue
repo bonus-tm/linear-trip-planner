@@ -10,7 +10,7 @@ import MoveBlock from './MoveBlock.vue';
 const timelineContainer = useTemplateRef('wrapper');
 
 const {locations, steps} = useAppState();
-const {layout, zoomIn, zoomOut, zoomToFit, isFitZoom, isMaxZoom, isMinZoom} = useTimelineLayout(
+const {layout, dayWidth, isFitZoom, isMaxZoom, isMinZoom, zoomIn, zoomOut, zoomToFit} = useTimelineLayout(
   locations,
   steps,
   timelineContainer,
@@ -60,6 +60,7 @@ const {layout, zoomIn, zoomOut, zoomToFit, isFitZoom, isMaxZoom, isMinZoom} = us
             v-for="location in layout.locations"
             :key="location.name"
             :location="location"
+            :dayWidth="dayWidth"
           />
           <MoveBlock
             v-for="move in layout.moves"

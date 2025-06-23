@@ -1,4 +1,4 @@
-import {computed, readonly, ref, type Ref, type ShallowRef, watch, watchEffect} from 'vue';
+import {computed, ref, type Ref, type ShallowRef, watch, watchEffect} from 'vue';
 import {useLocalStorage, useThrottleFn} from '@vueuse/core';
 import type {
   CssStyle,
@@ -291,7 +291,6 @@ export function useTimelineLayout(
           id: `cell-${locationId}-${date}`,
           timestamp: dayBeginTimestamp,
           date,
-          label: new Date(date).toLocaleDateString('en', {day: 'numeric', month: 'short', weekday: 'short'}),
           hasStay,
           hasMove,
           isEmpty,
@@ -377,11 +376,11 @@ export function useTimelineLayout(
   });
 
   return {
-    layout: readonly(layout),
+    layout,
+    dayWidth,
     isMinZoom,
     isMaxZoom,
     isFitZoom,
-    zoomLevel,
     zoomIn,
     zoomOut,
     zoomToFit,

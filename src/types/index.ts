@@ -61,7 +61,6 @@ export interface TimelineLocation {
 export interface DayBlock {
   id: string;
   date: string;
-  label: string;
   timestamp: number;
   hasStay: boolean;
   hasMove: boolean;

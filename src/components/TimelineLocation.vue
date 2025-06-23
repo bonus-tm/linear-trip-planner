@@ -3,7 +3,10 @@ import type {TimelineLocation} from '../types';
 import {formatTZ} from '../utils/datetime';
 import DayBlock from './DayBlock.vue';
 
-defineProps<{ location: TimelineLocation }>();
+defineProps<{
+  location: TimelineLocation;
+  dayWidth: number;
+}>();
 </script>
 
 <template>
@@ -13,7 +16,12 @@ defineProps<{ location: TimelineLocation }>();
       GMT{{ formatTZ(location.timezone) }}
     </div>
   </div>
-  <DayBlock v-for="day in location.days" :key="day.id" :day="day"/>
+  <DayBlock
+    v-for="day in location.days"
+    :key="day.id"
+    :day="day"
+    :width="dayWidth"
+  />
 </template>
 
 <style scoped>

@@ -21,7 +21,7 @@ defineProps<{ move: MoveBlock }>();
 .timeline-move-rectangle {
   position: absolute;
   background-color: var(--color-move-rectangle);
-  border: thin solid var(--color-move-rectangle-border);
+  border: thin solid transparent;
   transition: background-color 0.3s ease, border-color 0.3s ease;
   z-index: 10;
   cursor: pointer;
@@ -29,6 +29,7 @@ defineProps<{ move: MoveBlock }>();
 
 .timeline-move-rectangle:hover {
   background-color: var(--color-move-rectangle-hover);
+  border: thin solid var(--color-move-rectangle-border);
 }
 
 .time-label {

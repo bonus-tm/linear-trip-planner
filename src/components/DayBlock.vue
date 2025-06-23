@@ -1,7 +1,25 @@
 <script lang="ts" setup>
+import {computed} from 'vue';
 import type {DayBlock} from '../types';
 
-defineProps<{ day: DayBlock }>();
+const props = defineProps<{
+  day: DayBlock;
+  width: number;
+}>();
+
+const label = computed(() => {
+  const options: Intl.DateTimeFormatOptions = {day: 'numeric'};
+  if (props.width > 50) {
+    options.month = 'short';
+  }
+  if (props.width > 70) {
+    options.weekday = 'narrow';
+  }
+  if (props.width > 80) {
+    options.weekday = 'short';
+  }
+  return new Date(props.day.date).toLocaleDateString('en', options);
+});
 </script>
 
 <template>
@@ -17,9 +35,13 @@ defineProps<{ day: DayBlock }>();
     >
       <span class="pi pi-moon"/>
     </div>
-    <div class="date-label">
-      {{ day.label }}
+    <div class="hour-ticks">
+      <div v-if="width > 48"/>
+      <div v-if="width > 48"/>
+      <div/>
+      <div/>
     </div>
+    <div class="date-label">{{ label }}</div>
   </div>
 </template>
 
@@ -64,6 +86,26 @@ defineProps<{ day: DayBlock }>();
     position: relative;
     top: -2px;
     color: var(--color-border);
+  }
+}
+
+.hour-ticks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12px, 1fr));
+  grid-template-rows: 1fr;
+  height: 20%;
+  width: calc(100% + 1px);
+  position: absolute;
+  bottom: 0;
+  left: -1px;
+  z-index: 5;
+
+  div {
+    border-left: thin solid var(--color-hour-tick);
+  }
+
+  .empty & {
+    display: none;
   }
 }
 
