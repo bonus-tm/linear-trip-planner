@@ -1,4 +1,4 @@
-import {computed, ref, type Ref, type ShallowRef, watchEffect} from 'vue';
+import {computed, readonly, ref, type Ref, type ShallowRef, watch, watchEffect} from 'vue';
 import {useLocalStorage, useThrottleFn} from '@vueuse/core';
 import type {
   CssStyle,
@@ -70,12 +70,10 @@ export function useTimelineLayout(
     const i = widthsOfDay.findIndex((w) => w > dayWidth.value);
     zoomLevel.value = i !== -1 ? i : widthsOfDay.length - 1;
   };
-
   const zoomOut = () => {
     const i = widthsOfDay.findLastIndex((w) => w < dayWidth.value);
     zoomLevel.value = i !== -1 ? i : 0;
   };
-
   const zoomToFit = () => {
     zoomLevel.value = 'fit';
     const daysCount = Math.round(
@@ -144,47 +142,55 @@ export function useTimelineLayout(
     return Array.from(locationIdSet).filter(id => locations.value[id]);
   });
 
-  // TODO split to two computed properties — minTimestamp and maxTimestamp
-  // TODO watch minTimestamp and maxTimestamp and update zoom when zoom = fit
   /**
    * Find the earliest and the latest timestamps of days in steps list
    */
-  const getStepsBeginAndEnd = () => {
-    let minTimestamp = Number.MAX_SAFE_INTEGER;
-    let maxTimestamp = Number.MIN_SAFE_INTEGER;
-
+  const minTimestamp = computed(() => {
+    let min = Number.MAX_SAFE_INTEGER;
     let earliestStep = steps.value.at(0);
-    let latestStep = steps.value.at(-1);
-
     steps.value.forEach(step => {
-      if (step.startTimestamp < minTimestamp) {
+      if (step.startTimestamp < min) {
         earliestStep = step;
-        minTimestamp = step.startTimestamp;
-      }
-      if (step.finishTimestamp > maxTimestamp) {
-        latestStep = step;
-        maxTimestamp = step.finishTimestamp;
+        min = step.startTimestamp;
       }
     });
 
     if (earliestStep?.startLocationId) {
       const tz = locations.value[earliestStep.startLocationId].timezone;
       if (earliestStep.type === 'move' && new Date(earliestStep.startDate).getHours() < 12) {
-        minTimestamp -= DAY_24_HRS;
+        min -= DAY_24_HRS;
       }
-      minTimestamp = getDayBeginTimestamp(minTimestamp, tz);
+      min = getDayBeginTimestamp(min, tz);
     }
+
+    return min;
+  });
+  const maxTimestamp = computed(() => {
+    let max = Number.MIN_SAFE_INTEGER;
+    let latestStep = steps.value.at(-1);
+    steps.value.forEach(step => {
+      if (step.finishTimestamp > max) {
+        latestStep = step;
+        max = step.finishTimestamp;
+      }
+    });
 
     if (latestStep?.finishLocationId || latestStep?.startLocationId) {
       const locationId = latestStep.finishLocationId || latestStep.startLocationId;
       const tz = locations.value[locationId].timezone;
-      maxTimestamp = getDayBeginTimestamp(maxTimestamp, tz) + DAY_24_HRS - 1;
+      max = getDayBeginTimestamp(max, tz) + DAY_24_HRS - 1;
       if (latestStep.type === 'move' && new Date(latestStep.finishDate).getHours() >= 12) {
-        maxTimestamp += DAY_24_HRS;
+        max += DAY_24_HRS;
       }
     }
-    return [minTimestamp, maxTimestamp];
-  };
+    return max;
+  });
+
+  watch([minTimestamp, maxTimestamp], () => {
+    if (zoomLevel.value === 'fit') {
+      zoomToFit();
+    }
+  });
 
   // Calculate the timeline date range from steps
   const layout = computed<TimelineLayout>(() => {
@@ -199,7 +205,6 @@ export function useTimelineLayout(
       };
     }
 
-    const [minTimestamp, maxTimestamp] = getStepsBeginAndEnd();
     let layoutHeight = 0;
 
     const locationTimelines: Record<string, TimelineLocation> = {};
@@ -224,7 +229,7 @@ export function useTimelineLayout(
       };
 
       // all dates mentioned in all steps
-      const dates = getDatesBetween(minTimestamp, maxTimestamp, location.timezone);
+      const dates = getDatesBetween(minTimestamp.value, maxTimestamp.value, location.timezone);
 
       // Fill location days
       dates.forEach(date => {
@@ -269,7 +274,7 @@ export function useTimelineLayout(
         const labelWidth = getLocationsLabelWidth();
 
         const position: Position = {
-          left: labelWidth + ((dayBeginTimestamp - minTimestamp) / (DAY_24_HRS / dayWidth.value)),
+          left: labelWidth + ((dayBeginTimestamp - minTimestamp.value) / (DAY_24_HRS / dayWidth.value)),
           top: locationTop,
           width: dayWidth.value,
           height: LOCATION_HEIGHT - 2,
@@ -320,7 +325,7 @@ export function useTimelineLayout(
       const labelWidth = getLocationsLabelWidth();
 
       const position: Position = {
-        left: labelWidth + ((step.startTimestamp - minTimestamp) / (DAY_24_HRS / dayWidth.value)),
+        left: labelWidth + ((step.startTimestamp - minTimestamp.value) / (DAY_24_HRS / dayWidth.value)),
         top: Math.min(startLocationTop, finishLocationTop),
         width: (step.finishTimestamp - step.startTimestamp) / (DAY_24_HRS / dayWidth.value),
         height: Math.abs(finishLocationTop - startLocationTop) + LOCATION_HEIGHT,
@@ -362,9 +367,9 @@ export function useTimelineLayout(
     });
 
     return {
-      minTimestamp,
-      maxTimestamp,
-      width: Math.round((maxTimestamp - minTimestamp) / (DAY_24_HRS / dayWidth.value)),
+      minTimestamp: minTimestamp.value,
+      maxTimestamp: maxTimestamp.value,
+      width: Math.round((maxTimestamp.value - minTimestamp.value) / (DAY_24_HRS / dayWidth.value)),
       height: layoutHeight,
       locations: locationTimelines,
       moves,
@@ -372,11 +377,11 @@ export function useTimelineLayout(
   });
 
   return {
-    layout,
-    zoomLevel,
+    layout: readonly(layout),
     isMinZoom,
     isMaxZoom,
     isFitZoom,
+    zoomLevel,
     zoomIn,
     zoomOut,
     zoomToFit,
