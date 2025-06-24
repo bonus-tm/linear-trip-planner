@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {computed, ref, watch} from 'vue';
-import {isWeekendDay} from '../utils/datetime.ts';
+import {isWeekendDay} from '../../utils/datetime.ts';
 
 const props = defineProps<{
   date: string;

@@ -5,10 +5,10 @@ import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import Message from 'primevue/message';
-import type {Step} from '../types';
-import {useAppState} from '../composables/useAppState';
-import {formatTZ} from '../utils/datetime';
-import LocationSelect from './LocationSelect.vue';
+import type {Step} from '../../types';
+import {useAppState} from '../../composables/useAppState.ts';
+import {formatTZ} from '../../utils/datetime.ts';
+import LocationSelect from '../locations/LocationSelect.vue';
 
 interface Props {
   visible: boolean;

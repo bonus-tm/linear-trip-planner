@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import {computed, ref} from 'vue';
-import {useAppState} from '../composables/useAppState';
+import {useAppState} from '../../composables/useAppState.ts';
 import Button from 'primevue/button';
-import type {Step, StepType} from '../types';
-import {formatISOWithTZ} from '../utils/datetime';
+import type {Step, StepType} from '../../types';
+import {formatISOWithTZ} from '../../utils/datetime.ts';
 import MoveCard from './MoveCard.vue';
 import MoveEditModal from './MoveEditModal.vue';
 import StayCard from './StayCard.vue';

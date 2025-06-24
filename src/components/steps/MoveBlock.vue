@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type {MoveBlock} from '../types';
+import type {MoveBlock} from '../../types';
 
 defineProps<{ move: MoveBlock }>();
 </script>

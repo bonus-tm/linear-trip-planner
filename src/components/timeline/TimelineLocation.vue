@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import type {TimelineLocation} from '../types';
-import {formatTZ} from '../utils/datetime';
+import type {TimelineLocation} from '../../types';
+import {formatTZ} from '../../utils/datetime.ts';
 import DayBlock from './DayBlock.vue';
 
 defineProps<{

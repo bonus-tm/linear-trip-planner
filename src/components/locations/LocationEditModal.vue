@@ -4,7 +4,7 @@ import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Select from 'primevue/select';
 import Button from 'primevue/button';
-import type { Location } from '../types';
+import type { Location } from '../../types';
 
 interface Props {
   visible: boolean;

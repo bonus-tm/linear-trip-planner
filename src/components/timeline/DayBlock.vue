@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {computed} from 'vue';
-import type {DayBlock} from '../types';
+import type {DayBlock} from '../../types';
 
 const props = defineProps<{
   day: DayBlock;

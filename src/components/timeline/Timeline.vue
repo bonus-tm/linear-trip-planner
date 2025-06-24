@@ -2,10 +2,10 @@
 import {useTemplateRef} from 'vue';
 import Button from 'primevue/button';
 import ButtonGroup from 'primevue/buttongroup';
-import {useAppState} from '../composables/useAppState';
-import {useTimelineLayout} from '../composables/useTimelineLayout';
+import {useAppState} from '../../composables/useAppState.ts';
+import {useTimelineLayout} from '../../composables/useTimelineLayout.ts';
 import TimelineLocation from './TimelineLocation.vue';
-import MoveBlock from './MoveBlock.vue';
+import MoveBlock from '../steps/MoveBlock.vue';
 
 const timelineContainer = useTemplateRef('wrapper');
 

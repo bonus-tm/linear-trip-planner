@@ -3,10 +3,10 @@ import {computed} from 'vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
-import type {Step} from '../types';
-import {useAppState} from '../composables/useAppState';
-import {capitalize} from '../utils/text';
-import {formatDurationTime} from '../utils/datetime';
+import type {Step} from '../../types';
+import {useAppState} from '../../composables/useAppState.ts';
+import {capitalize} from '../../utils/text.ts';
+import {formatDurationTime} from '../../utils/datetime.ts';
 import MoveDateTime from './MoveDateTime.vue';
 
 interface Props {

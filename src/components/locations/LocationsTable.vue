@@ -1,11 +1,11 @@
 <script lang="ts" setup>
 import {computed, ref} from 'vue';
-import {useAppState} from '../composables/useAppState';
+import {useAppState} from '../../composables/useAppState.ts';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import LocationEditModal from './LocationEditModal.vue';
-import type {Location} from '../types';
-import {formatTZ} from '../utils/datetime';
+import type {Location} from '../../types';
+import {formatTZ} from '../../utils/datetime.ts';
 
 const {locationsList, addLocation, updateLocation, deleteLocation} = useAppState();
 

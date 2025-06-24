@@ -7,9 +7,9 @@ import {useToast} from 'primevue/usetoast';
 import {useConfirm} from 'primevue/useconfirm';
 import {useAppState} from './composables/useAppState';
 import AppTitle from './components/AppTitle.vue';
-import LocationsTable from './components/LocationsTable.vue';
-import StepsTable from './components/StepsTable.vue';
-import Timeline from './components/Timeline.vue';
+import LocationsTable from './components/locations/LocationsTable.vue';
+import StepsTable from './components/steps/StepsTable.vue';
+import Timeline from './components/timeline/Timeline.vue';
 
 const {error, locations, steps} = useAppState();
 

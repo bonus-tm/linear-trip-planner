@@ -3,7 +3,7 @@ import {ref, computed} from 'vue';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
 import LocationEditModal from './LocationEditModal.vue';
-import {useAppState} from '../composables/useAppState';
+import {useAppState} from '../../composables/useAppState.ts';
 
 const selectedLocationId = defineModel<number>();
 defineProps<{
