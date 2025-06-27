@@ -181,8 +181,15 @@ await db.createIndex({
 
 ## ID Generation Utilities
 
+### Utility File Organization
+ID generation and document management is split across utility files:
+- **`src/utils/ids.ts`**: Core ID generation functions (device, trip, location, step)
+- **`src/utils/documentIds.ts`**: Document ID creation, parsing, and reference management
+- **`src/utils/database.ts`**: Database configuration and connection management
+
 ### Device ID Management
 ```typescript
+// Located in src/utils/ids.ts
 function getOrCreateDeviceId(): string {
   const storageKey = 'tavel-timeline-device-id';
   let deviceId = localStorage.getItem(storageKey);
@@ -248,8 +255,27 @@ function generateStepId(): string {
 }
 ```
 
+### App State Integration
+Trip and device IDs are managed in the app state composable:
+```typescript
+// Located in src/composables/useAppState.ts
+const currentTripId = ref<string | null>(null);
+const deviceId = ref<string>(getOrCreateDeviceId());
+
+// Function to create new trip
+const createNewTrip = () => {
+  const newTripId = generateTripId();
+  currentTripId.value = newTripId;
+  // Clear current data for new trip
+  locations.value = {};
+  steps.value = [];
+  return newTripId;
+};
+```
+
 ### Document ID Utilities
 ```typescript
+// Located in src/utils/documentIds.ts
 function createLocationDocId(deviceId: string, tripId: string, locationId: string): string {
   return `${deviceId}>${tripId}>location>${locationId}`;
 }

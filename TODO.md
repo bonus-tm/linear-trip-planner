@@ -19,15 +19,15 @@ Migrate timeline data storage from localStorage to PouchDB while keeping device 
 ## Phase 2: ID Generation and Device Management
 
 ### 2.1 Device ID Generation
-- [ ] Create utility function to generate unique device ID using `crypto.randomUUID()`
-- [ ] Check localStorage for existing device ID (`"tavel-timeline-device-id"`)
-- [ ] Generate and store new device ID if none exists
-- [ ] Ensure device ID format is suitable for PouchDB document IDs
+- [x] Create utility function to generate unique device ID using `crypto.randomUUID()`
+- [x] Check localStorage for existing device ID (`"tavel-timeline-device-id"`)
+- [x] Generate and store new device ID if none exists
+- [x] Ensure device ID format is suitable for PouchDB document IDs
 
 ### 2.2 Trip ID Generation
-- [ ] Create utility function to generate unique trip ID using `crypto.randomUUID()`
-- [ ] Implement trip ID generation when "New travel" button is clicked
-- [ ] Store current trip ID in app state for session use
+- [x] Create utility function to generate unique trip ID using `crypto.randomUUID()`
+- [x] Implement trip ID generation when "New travel" button is clicked
+- [x] Store current trip ID in app state for session use
 
 ## Phase 3: Data Structure Migration
 

@@ -1,6 +1,7 @@
 import {computed, ref} from 'vue';
 import {useLocalStorage} from '@vueuse/core';
 import type {Location, LocationsMap, StepsList} from '../types';
+import {generateTripId, getOrCreateDeviceId} from '../utils/ids';
 
 const error = ref<string | null>(null);
 
@@ -8,6 +9,10 @@ export function useAppState() {
   // Persisted state using localStorage
   const locations = useLocalStorage<LocationsMap>('trip-planner-locations', {});
   const steps = useLocalStorage<StepsList>('trip-planner-steps', []);
+
+  // Trip and device ID management (for session use)
+  const currentTripId = ref<string | null>(null);
+  const deviceId = ref<string>(getOrCreateDeviceId());
 
   // Loading states
   const isLoading = ref(false);
@@ -103,6 +108,19 @@ export function useAppState() {
     return true;
   };
 
+  // Trip operations
+  const createNewTrip = () => {
+    const newTripId = generateTripId();
+    currentTripId.value = newTripId;
+    
+    // Clear current locations and steps for new trip
+    locations.value = {};
+    steps.value = [];
+    
+    error.value = null;
+    return newTripId;
+  };
+
   // Computed values
   const locationsList = computed(() => Object.values(locations.value));
   const sortedSteps = computed(() =>
@@ -117,6 +135,8 @@ export function useAppState() {
     steps,
     isLoading,
     error,
+    currentTripId,
+    deviceId,
 
     // Computed
     locationsList,
@@ -131,5 +151,8 @@ export function useAppState() {
     addStep,
     updateStep,
     deleteStep,
+
+    // Trip operations
+    createNewTrip,
   };
 } 

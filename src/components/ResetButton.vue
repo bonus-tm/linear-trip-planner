@@ -4,7 +4,7 @@ import {useConfirm} from 'primevue/useconfirm';
 import ConfirmDialog from 'primevue/confirmdialog';
 import {useAppState} from '../composables/useAppState';
 
-const {locations, steps} = useAppState();
+const {createNewTrip} = useAppState();
 const confirm = useConfirm();
 
 const handleNewTravel = () => {
@@ -22,11 +22,10 @@ const handleNewTravel = () => {
       severity: 'danger',
     },
     accept: () => {
-      // Clear all locations and steps
-      locations.value = {};
-      steps.value = [];
+      // Generate new trip ID and clear all locations and steps
+      createNewTrip();
 
-      // Reset zoom level to 'fit'
+      // Reset zoom level to 'fit' - keeping this in localStorage as specified
       localStorage.setItem('trip-planner-zoom', 'fit');
     },
   });
