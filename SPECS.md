@@ -22,6 +22,19 @@ Only these items remain in localStorage:
 - **Key**: `"tavel-timeline-zoom"` → **Value**: ZoomLevel ('fit' | number)  
 - **Key**: `"tavel-timeline-device-id"` → **Value**: string (generated UUID)
 
+### Type System Migration
+Application types have been updated for PouchDB compatibility:
+- **Location.id**: Changed from `number` to `string` (UUID)
+- **Step.startLocationId**: Changed from `number` to `string` (UUID)
+- **Step.finishLocationId**: Changed from `number?` to `string?` (UUID)
+- **LocationsMap**: Changed from `Record<number, Location>` to `Record<string, Location>`
+
+New PouchDB document types added:
+- **LocationDocument**: PouchDB document schema for locations
+- **StepDocument**: PouchDB document schema for steps  
+- **TripDocument**: PouchDB document schema for trip metadata
+- **DatabaseDocument**: Union type for all document types
+
 ### PouchDB Document Structure
 
 #### Device ID Format

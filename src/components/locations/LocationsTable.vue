@@ -56,7 +56,7 @@ const handleLocationSave = (locationData: Location | {
   }
 };
 
-const handleLocationDelete = (locationId: number) => {
+const handleLocationDelete = (locationId: string) => {
   const success = deleteLocation(locationId);
   if (success) {
     editLocationDialogVisible.value = false;

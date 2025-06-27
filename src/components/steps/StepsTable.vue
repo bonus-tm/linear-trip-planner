@@ -27,13 +27,13 @@ const addNewStep = (type: StepType) => {
   const lastStep = sortedSteps.value[sortedSteps.value.length - 1];
 
   // Determine the location for the new step
-  let newLocationId: number;
+  let newLocationId: string;
   if (lastStep) {
     // Use the finish location of the last step if it's a move, otherwise use the start location
     newLocationId = lastStep.type === 'move' ? lastStep.finishLocationId! : lastStep.startLocationId;
   } else {
     // Use the first available location
-    newLocationId = locationsList.value[0]?.id || 1;
+    newLocationId = locationsList.value[0]?.id || '';
   }
 
   // Get the current time in the new step's location timezone

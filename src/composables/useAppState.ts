@@ -1,7 +1,7 @@
 import {computed, ref} from 'vue';
 import {useLocalStorage} from '@vueuse/core';
 import type {Location, LocationsMap, StepsList} from '../types';
-import {generateTripId, getOrCreateDeviceId} from '../utils/ids';
+import {generateTripId, getOrCreateDeviceId, generateLocationId, generateStepId} from '../utils/ids';
 
 const error = ref<string | null>(null);
 
@@ -17,12 +17,6 @@ export function useAppState() {
   // Loading states
   const isLoading = ref(false);
 
-  // Get next available location ID
-  const getNextLocationId = () => {
-    const existingIds = Object.keys(locations.value).map(Number);
-    return existingIds.length === 0 ? 1 : Math.max(...existingIds) + 1;
-  };
-
   // Location operations
   const addLocation = (locationData: Omit<Location, 'id'>) => {
     // Check if location with this name already exists
@@ -32,7 +26,7 @@ export function useAppState() {
       return false;
     }
 
-    const newId = getNextLocationId();
+    const newId = generateLocationId();
     const location: Location = {
       id: newId,
       ...locationData
@@ -43,7 +37,7 @@ export function useAppState() {
     return true;
   };
 
-  const updateLocation = (locationId: number, updatedLocation: Omit<Location, 'id'>) => {
+  const updateLocation = (locationId: string, updatedLocation: Omit<Location, 'id'>) => {
     if (!locations.value[locationId]) {
       error.value = 'Location not found';
       return false;
@@ -58,7 +52,7 @@ export function useAppState() {
     return true;
   };
 
-  const deleteLocation = (locationId: number) => {
+  const deleteLocation = (locationId: string) => {
     // Check if location is used in any step
     const isUsed = steps.value.some(step =>
       step.startLocationId === locationId || step.finishLocationId === locationId,
@@ -78,7 +72,7 @@ export function useAppState() {
   const addStep = (step: Omit<StepsList[0], 'id'>) => {
     const newStep = {
       ...step,
-      id: `S${Math.random().toString(36).substring(2, 9)}`,
+      id: generateStepId(),
     };
 
     steps.value.push(newStep);

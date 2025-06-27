@@ -1,5 +1,5 @@
 export interface Location {
-  id: number; // Add unique numeric identifier
+  id: string; // UUID string identifier for PouchDB compatibility
   name: string;
   coordinates: { lat: number; lng: number };
   timezone: number; // -12 to +12 UTC offset
@@ -14,20 +14,20 @@ export interface DaylightInfo {
 export type StepType = 'move' | 'stay'
 
 export interface Step {
-  id: string; // Add unique identifier
+  id: string; // UUID identifier
   type: StepType;
   startDate: string; // ISO datetime or date
   finishDate: string;
   startTimestamp: number;
   finishTimestamp: number;
-  startLocationId: number; // changed from startLocation to use ID
-  finishLocationId?: number; // changed from finishLocation to use ID, only for 'move' type
+  startLocationId: string; // Location UUID for PouchDB compatibility
+  finishLocationId?: string; // Location UUID for PouchDB compatibility, only for 'move' type
   startAirport?: string; // optional and only for 'move' type, 3 letters
   finishAirport?: string; // optional and only for 'move' type, 3 letters
   description?: string; // optional
 }
 
-export type LocationsMap = Record<number, Location>
+export type LocationsMap = Record<string, Location>
 export type StepsList = Step[]
 
 export type Position = {
@@ -93,3 +93,65 @@ export interface TimelineLayout {
 }
 
 export type ZoomLevel = number | 'fit';
+
+// PouchDB Document Types
+
+export interface Trip {
+  created_at: number; // timestamp
+  updated_at: number; // timestamp 
+  deleted_at?: number; // timestamp, optional (soft delete)
+  title: string;
+  subtitle: string;
+}
+
+// PouchDB document metadata
+export interface PouchDBMeta {
+  _id: string;
+  _rev?: string;
+}
+
+// PouchDB Document Schemas (as stored in database)
+export interface LocationDocument extends PouchDBMeta {
+  type: 'location';
+  device_id: string; // UUID
+  trip_id: string; // UUID
+  location_id: string; // UUID
+  data: {
+    name: string;
+    coordinates: { lat: number; lng: number };
+    timezone: number; // -12 to +12 UTC offset
+  };
+  created_at: number; // timestamp
+  updated_at: number; // timestamp
+}
+
+export interface StepDocument extends PouchDBMeta {
+  type: 'step';
+  device_id: string; // UUID
+  trip_id: string; // UUID
+  step_id: string; // UUID
+  data: {
+    type: 'move' | 'stay';
+    startDate: string; // ISO datetime
+    finishDate: string; // ISO datetime  
+    startTimestamp: number;
+    finishTimestamp: number;
+    startLocationId: string; // Location UUID only (device_id + trip_id can be derived from step document)
+    finishLocationId?: string; // Location UUID only (only for 'move' type)
+    startAirport?: string; // 3 letters, optional
+    finishAirport?: string; // 3 letters, optional
+    description?: string; // optional
+  };
+  created_at: number; // timestamp
+  updated_at: number; // timestamp
+}
+
+export interface TripDocument extends PouchDBMeta {
+  type: 'trip';
+  device_id: string; // UUID
+  trip_id: string; // UUID
+  data: Trip;
+}
+
+// Union type for all document types
+export type DatabaseDocument = LocationDocument | StepDocument | TripDocument;

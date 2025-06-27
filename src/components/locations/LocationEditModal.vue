@@ -15,7 +15,7 @@ interface Props {
 interface Emits {
   (e: 'update:visible', value: boolean): void;
   (e: 'save', location: Location | { name: string; timezone: number; coordinates?: { lat: number; lng: number } }): void;
-  (e: 'delete', locationId: number): void;
+  (e: 'delete', locationId: string): void;
   (e: 'close'): void;
 }
 

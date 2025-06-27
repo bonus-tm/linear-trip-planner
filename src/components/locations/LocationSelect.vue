@@ -5,7 +5,7 @@ import Select from 'primevue/select';
 import LocationEditModal from './LocationEditModal.vue';
 import {useAppState} from '../../composables/useAppState.ts';
 
-const selectedLocationId = defineModel<number>();
+const selectedLocationId = defineModel<string>();
 defineProps<{
   placeholder?: string
 }>();

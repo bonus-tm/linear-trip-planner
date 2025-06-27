@@ -130,7 +130,7 @@ export function useTimelineLayout(
 
   // Get unique location IDs used in steps
   const usedLocationIds = computed(() => {
-    const locationIdSet = new Set<number>();
+    const locationIdSet = new Set<string>();
 
     steps.value.forEach(step => {
       locationIdSet.add(step.startLocationId);
