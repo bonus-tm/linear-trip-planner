@@ -3,9 +3,11 @@ import Button from 'primevue/button';
 import {useConfirm} from 'primevue/useconfirm';
 import ConfirmDialog from 'primevue/confirmdialog';
 import {useAppState} from '../composables/useAppState';
+import {ref} from 'vue';
 
-const {createNewTrip} = useAppState();
+const {createNewTrip, isLoading} = useAppState();
 const confirm = useConfirm();
+const isResetting = ref(false);
 
 const handleNewTravel = () => {
   confirm.require({
@@ -21,12 +23,20 @@ const handleNewTravel = () => {
       label: 'Reset',
       severity: 'danger',
     },
-    accept: () => {
-      // Generate new trip ID and clear all locations and steps
-      createNewTrip();
+    accept: async () => {
+      try {
+        isResetting.value = true;
+        
+        // Generate new trip ID and clear all locations and steps
+        await createNewTrip();
 
-      // Reset zoom level to 'fit' - keeping this in localStorage as specified
-      localStorage.setItem('trip-planner-zoom', 'fit');
+        // Reset zoom level to 'fit' - keeping this in localStorage as specified
+        localStorage.setItem('trip-planner-zoom', 'fit');
+      } catch (error) {
+        console.error('Failed to create new trip:', error);
+      } finally {
+        isResetting.value = false;
+      }
     },
   });
 };
@@ -38,6 +48,7 @@ const handleNewTravel = () => {
     icon="pi pi-pen-to-square"
     label="New travel"
     severity="secondary"
+    :loading="isLoading || isResetting"
     @click="handleNewTravel"
   />
   <ConfirmDialog/>

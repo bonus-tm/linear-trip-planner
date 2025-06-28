@@ -56,12 +56,12 @@ Migrate timeline data storage from localStorage to PouchDB while keeping device 
 ## Phase 4: Database Operations
 
 ### 4.1 Location Operations
-- [ ] Replace `addLocation` to store in PouchDB with proper document ID
-- [ ] Replace `updateLocation` to update PouchDB document
-- [ ] Replace `deleteLocation` to remove from PouchDB
-- [ ] Update location loading to fetch from PouchDB
-- [ ] Update location ID generation to use `crypto.randomUUID()` exclusively
-- [ ] Update location queries to use new document ID format with ">" separators
+- [x] Replace `addLocation` to store in PouchDB with proper document ID
+- [x] Replace `updateLocation` to update PouchDB document
+- [x] Replace `deleteLocation` to remove from PouchDB
+- [x] Update location loading to fetch from PouchDB
+- [x] Update location ID generation to use `crypto.randomUUID()` exclusively
+- [x] Update location queries to use new document ID format with ">" separators
 
 ### 4.2 Step Operations  
 - [ ] Replace `addStep` to store in PouchDB with proper document ID

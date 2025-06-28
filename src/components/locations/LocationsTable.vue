@@ -7,7 +7,7 @@ import LocationEditModal from './LocationEditModal.vue';
 import type {Location} from '../../types';
 import {formatTZ} from '../../utils/datetime.ts';
 
-const {locationsList, addLocation, updateLocation, deleteLocation} = useAppState();
+const {locationsList, addLocation, updateLocation, deleteLocation, isLoading} = useAppState();
 
 const editLocationDialogVisible = ref(false);
 const locationToEdit = ref<Location | null>(null);
@@ -31,21 +31,21 @@ const showEditLocationDialog = (location: Location) => {
   editLocationDialogVisible.value = true;
 };
 
-const handleLocationSave = (locationData: Location | {
+const handleLocationSave = async (locationData: Location | {
   name: string;
   timezone: number;
   coordinates?: { lat: number; lng: number }
 }) => {
   if ('id' in locationData) {
     // Editing existing location
-    const success = updateLocation(locationData.id, locationData);
+    const success = await updateLocation(locationData.id, locationData);
     if (success) {
       editLocationDialogVisible.value = false;
       locationToEdit.value = null;
     }
   } else {
     // Creating new location
-    const success = addLocation({
+    const success = await addLocation({
       name: locationData.name,
       coordinates: locationData.coordinates || {lat: 0, lng: 0},
       timezone: locationData.timezone,
@@ -56,8 +56,8 @@ const handleLocationSave = (locationData: Location | {
   }
 };
 
-const handleLocationDelete = (locationId: string) => {
-  const success = deleteLocation(locationId);
+const handleLocationDelete = async (locationId: string) => {
+  const success = await deleteLocation(locationId);
   if (success) {
     editLocationDialogVisible.value = false;
     locationToEdit.value = null;
@@ -74,11 +74,17 @@ const handleLocationDelete = (locationId: string) => {
         label="Add Location"
         severity="secondary"
         size="small"
+        :loading="isLoading"
         @click="showAddLocationDialog"
       />
     </div>
 
-    <div class="cards-container">
+    <div v-if="isLoading" class="loading-state">
+      <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+      <p>Loading locations...</p>
+    </div>
+
+    <div v-else class="cards-container">
       <Card v-for="location in cardsData" :key="location.name" class="location-card">
         <template #title>
           <div class="card-title">
@@ -89,6 +95,7 @@ const handleLocationDelete = (locationId: string) => {
                 rounded
                 size="small"
                 text
+                :loading="isLoading"
                 @click="showEditLocationDialog(location)"
               />
             </div>
@@ -158,6 +165,16 @@ h2 {
   margin: 0;
   color: var(--color-text);
   transition: color 0.3s ease;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  color: var(--color-text);
+  opacity: 0.7;
 }
 
 .cards-container {

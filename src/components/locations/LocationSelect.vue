@@ -10,7 +10,7 @@ defineProps<{
   placeholder?: string
 }>();
 
-const {locationsList, addLocation} = useAppState();
+const {locationsList, addLocation, isLoading} = useAppState();
 
 // Convert locations to options for the select
 const locationOptions = computed(() => 
@@ -24,20 +24,23 @@ const locationOptions = computed(() =>
 const showLocationModal = ref(false);
 
 // Handle new location creation
-const handleLocationCreated = (locationData: { name: string; timezone: number; coordinates?: { lat: number; lng: number } }) => {
+const handleLocationCreated = async (locationData: { name: string; timezone: number; coordinates?: { lat: number; lng: number } }) => {
   const newLocation = {
     name: locationData.name,
     coordinates: locationData.coordinates || {lat: 0, lng: 0},
     timezone: locationData.timezone,
   };
-  addLocation(newLocation);
   
-  // Find the newly created location and select it
-  const createdLocation = locationsList.value.find(loc => loc.name === locationData.name);
-  if (createdLocation) {
-    selectedLocationId.value = createdLocation.id;
+  const success = await addLocation(newLocation);
+  
+  if (success) {
+    // Find the newly created location and select it
+    const createdLocation = locationsList.value.find(loc => loc.name === locationData.name);
+    if (createdLocation) {
+      selectedLocationId.value = createdLocation.id;
+    }
+    showLocationModal.value = false;
   }
-  showLocationModal.value = false;
 };
 </script>
 
@@ -49,6 +52,7 @@ const handleLocationCreated = (locationData: { name: string; timezone: number; c
     optionLabel="label"
     optionValue="value"
     :placeholder="placeholder || 'Select location'"
+    :disabled="isLoading"
   >
     <template #footer>
       <Button
@@ -58,6 +62,7 @@ const handleLocationCreated = (locationData: { name: string; timezone: number; c
         text
         size="small"
         icon="pi pi-plus"
+        :loading="isLoading"
         @click="showLocationModal = true"
       />
     </template>

@@ -1,13 +1,20 @@
-import {computed, ref} from 'vue';
+import {computed, ref, onMounted} from 'vue';
 import {useLocalStorage} from '@vueuse/core';
 import type {Location, LocationsMap, StepsList} from '../types';
 import {generateTripId, getOrCreateDeviceId, generateLocationId, generateStepId} from '../utils/ids';
+import {
+  addLocation as dbAddLocation,
+  updateLocation as dbUpdateLocation,
+  deleteLocation as dbDeleteLocation,
+  getLocations as dbGetLocations,
+  initializeDatabase
+} from '../utils/database';
 
 const error = ref<string | null>(null);
 
 export function useAppState() {
-  // Persisted state using localStorage
-  const locations = useLocalStorage<LocationsMap>('trip-planner-locations', {});
+  // Reactive state for PouchDB data
+  const locations = ref<LocationsMap>({});
   const steps = useLocalStorage<StepsList>('trip-planner-steps', []);
 
   // Trip and device ID management (for session use)
@@ -17,8 +24,52 @@ export function useAppState() {
   // Loading states
   const isLoading = ref(false);
 
+  // Initialize database and load data
+  onMounted(async () => {
+    try {
+      await initializeDatabase();
+      
+      // Load locations if we have a current trip
+      if (currentTripId.value) {
+        await loadLocations();
+      }
+    } catch (err) {
+      console.error('Failed to initialize database:', err);
+      error.value = 'Failed to initialize database';
+    }
+  });
+
+  // Load locations from PouchDB
+  const loadLocations = async (): Promise<void> => {
+    if (!currentTripId.value) return;
+    
+    try {
+      isLoading.value = true;
+      const locationsList = await dbGetLocations(deviceId.value, currentTripId.value);
+      
+      // Convert array to map for reactive state
+      const locationsMap: LocationsMap = {};
+      locationsList.forEach(location => {
+        locationsMap[location.id] = location;
+      });
+      
+      locations.value = locationsMap;
+      error.value = null;
+    } catch (err) {
+      console.error('Failed to load locations:', err);
+      error.value = 'Failed to load locations';
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
   // Location operations
-  const addLocation = (locationData: Omit<Location, 'id'>) => {
+  const addLocation = async (locationData: Omit<Location, 'id'>): Promise<boolean> => {
+    if (!currentTripId.value) {
+      error.value = 'No active trip. Please create a new trip first.';
+      return false;
+    }
+
     // Check if location with this name already exists
     const existingLocation = Object.values(locations.value).find(loc => loc.name === locationData.name);
     if (existingLocation) {
@@ -26,33 +77,60 @@ export function useAppState() {
       return false;
     }
 
-    const newId = generateLocationId();
-    const location: Location = {
-      id: newId,
-      ...locationData
-    };
-
-    locations.value[newId] = location;
-    error.value = null;
-    return true;
+    try {
+      isLoading.value = true;
+      const location = await dbAddLocation(deviceId.value, currentTripId.value, locationData);
+      
+      // Update reactive state
+      locations.value[location.id] = location;
+      error.value = null;
+      return true;
+    } catch (err) {
+      console.error('Failed to add location:', err);
+      error.value = 'Failed to add location';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
   };
 
-  const updateLocation = (locationId: string, updatedLocation: Omit<Location, 'id'>) => {
+  const updateLocation = async (locationId: string, updatedLocation: Omit<Location, 'id'>): Promise<boolean> => {
+    if (!currentTripId.value) {
+      error.value = 'No active trip. Please create a new trip first.';
+      return false;
+    }
+
     if (!locations.value[locationId]) {
       error.value = 'Location not found';
       return false;
     }
 
-    locations.value[locationId] = {
-      id: locationId,
-      ...updatedLocation
-    };
-
-    error.value = null;
-    return true;
+    try {
+      isLoading.value = true;
+      await dbUpdateLocation(deviceId.value, currentTripId.value, locationId, updatedLocation);
+      
+      // Update reactive state
+      locations.value[locationId] = {
+        id: locationId,
+        ...updatedLocation
+      };
+      error.value = null;
+      return true;
+    } catch (err) {
+      console.error('Failed to update location:', err);
+      error.value = 'Failed to update location';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
   };
 
-  const deleteLocation = (locationId: string) => {
+  const deleteLocation = async (locationId: string): Promise<boolean> => {
+    if (!currentTripId.value) {
+      error.value = 'No active trip. Please create a new trip first.';
+      return false;
+    }
+
     // Check if location is used in any step
     const isUsed = steps.value.some(step =>
       step.startLocationId === locationId || step.finishLocationId === locationId,
@@ -63,9 +141,21 @@ export function useAppState() {
       return false;
     }
 
-    delete locations.value[locationId];
-    error.value = null;
-    return true;
+    try {
+      isLoading.value = true;
+      await dbDeleteLocation(deviceId.value, currentTripId.value, locationId);
+      
+      // Update reactive state
+      delete locations.value[locationId];
+      error.value = null;
+      return true;
+    } catch (err) {
+      console.error('Failed to delete location:', err);
+      error.value = 'Failed to delete location';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
   };
 
   // Step operations
@@ -103,13 +193,16 @@ export function useAppState() {
   };
 
   // Trip operations
-  const createNewTrip = () => {
+  const createNewTrip = async (): Promise<string> => {
     const newTripId = generateTripId();
     currentTripId.value = newTripId;
     
     // Clear current locations and steps for new trip
     locations.value = {};
     steps.value = [];
+    
+    // Load locations for the new trip (should be empty)
+    await loadLocations();
     
     error.value = null;
     return newTripId;
@@ -140,6 +233,7 @@ export function useAppState() {
     addLocation,
     updateLocation,
     deleteLocation,
+    loadLocations,
 
     // Step operations
     addStep,
