@@ -83,31 +83,31 @@ Migrate timeline data storage from localStorage to PouchDB while keeping device 
 ## Phase 5: App State Management Updates
 
 ### 5.1 Update useAppState Composable
-- [ ] Remove localStorage usage for locations and steps
-- [ ] Add PouchDB operations for data persistence
-- [ ] Add trip state management
-- [ ] Maintain reactivity with Vue's reactive system
-- [ ] Add loading states for async database operations
-- [ ] Update location ID handling to use string IDs instead of numeric IDs
-- [ ] Implement location reference resolution (convert location UUIDs to location objects for app compatibility)
-- [ ] Add utilities to build full location document IDs when needed for querying
-- [ ] Add reference validation when creating/updating steps
+- [x] Remove localStorage usage for locations and steps
+- [x] Add PouchDB operations for data persistence
+- [x] Add trip state management
+- [x] Maintain reactivity with Vue's reactive system
+- [x] Add loading states for async database operations
+- [x] Update location ID handling to use string IDs instead of numeric IDs
+- [x] Implement location reference resolution (convert location UUIDs to location objects for app compatibility)
+- [x] Add utilities to build full location document IDs when needed for querying
+- [x] Add reference validation when creating/updating steps
 
 ### 5.2 Error Handling
-- [ ] Add database connection error handling
-- [ ] Add document conflict resolution
+- [x] Add database connection error handling
+- [x] Add document conflict resolution
 - [ ] Add offline/online state handling
-- [ ] Update error messages for database-specific errors
+- [x] Update error messages for database-specific errors
 
 ## Phase 6: Migration and Reset Functionality
 
 ### 6.1 Update Reset Button
-- [ ] Modify "New travel" functionality to:
+- [x] Modify "New travel" functionality to:
   - Generate new trip ID
   - Create new trip info document
   - Clear current locations and steps from state
   - Keep device ID and zoom level in localStorage
-- [ ] Ensure old trip data remains in PouchDB (no deletion)
+- [x] Ensure old trip data remains in PouchDB (no deletion)
 
 ### 6.2 Data Migration (Future Enhancement)
 - [ ] Create migration utility to import existing localStorage data (optional)
@@ -117,9 +117,9 @@ Migrate timeline data storage from localStorage to PouchDB while keeping device 
 ## Phase 7: Query and Loading Optimization
 
 ### 7.1 Efficient Data Loading
-- [ ] Implement trip-specific data loading (filter by device_id + trip_id)
-- [ ] Update query patterns to use new document ID format with ">" separators
-- [ ] Add indexes for faster querying
+- [x] Implement trip-specific data loading (filter by device_id + trip_id)
+- [x] Update query patterns to use new document ID format with ">" separators
+- [x] Add indexes for faster querying
 - [ ] Implement incremental loading if needed
 - [ ] Cache frequently accessed data in memory
 
