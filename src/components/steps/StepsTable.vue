@@ -9,7 +9,7 @@ import MoveEditModal from './MoveEditModal.vue';
 import StayCard from './StayCard.vue';
 import StayEditModal from './StayEditModal.vue';
 
-const {sortedSteps, locationsList, locations, addStep, updateStep, deleteStep} = useAppState();
+const {sortedSteps, locationsList, locations, addStep, updateStep, deleteStep, isLoading} = useAppState();
 
 // Modal state
 const editModalVisible = ref(false);
@@ -78,24 +78,40 @@ const handleEditStep = (stepId: string) => {
   }
 };
 
-const handleSaveStep = (stepData: Partial<Step>) => {
+const handleSaveStep = async (stepData: Partial<Step>) => {
   if (isCreatingNewStep.value) {
     // Create new step - cast to the required type since we know it has all required fields
-    addStep(stepData as Omit<Step, 'id'>);
+    const success = await addStep(stepData as Omit<Step, 'id'>);
+    if (success) {
+      editingStep.value = null;
+      isCreatingNewStep.value = false;
+      editModalVisible.value = false;
+    }
   } else if (editingStep.value?.id) {
     // Update existing step
-    updateStep(editingStep.value.id, stepData);
+    const success = await updateStep(editingStep.value.id, stepData);
+    if (success) {
+      editingStep.value = null;
+      isCreatingNewStep.value = false;
+      editModalVisible.value = false;
+    }
   }
-  editingStep.value = null;
-  isCreatingNewStep.value = false;
 };
 
-const handleDeleteStep = (stepId: string) => {
+const handleDeleteStep = async (stepId: string) => {
   if (!isCreatingNewStep.value) {
-    deleteStep(stepId);
+    const success = await deleteStep(stepId);
+    if (success) {
+      editingStep.value = null;
+      isCreatingNewStep.value = false;
+      editModalVisible.value = false;
+    }
+  } else {
+    // Just close modal for new step creation
+    editingStep.value = null;
+    isCreatingNewStep.value = false;
+    editModalVisible.value = false;
   }
-  editingStep.value = null;
-  isCreatingNewStep.value = false;
 };
 
 const handleModalClose = () => {
@@ -113,6 +129,7 @@ const handleModalClose = () => {
         label="Add Move"
         severity="info"
         size="small"
+        :loading="isLoading"
         @click="addNewStep('move')"
       />
       <Button
@@ -120,11 +137,17 @@ const handleModalClose = () => {
         label="Add Stay"
         severity="success"
         size="small"
+        :loading="isLoading"
         @click="addNewStep('stay')"
       />
     </div>
 
-    <div class="cards-container">
+    <div v-if="isLoading" class="loading-state">
+      <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+      <p>Loading steps...</p>
+    </div>
+
+    <div v-else class="cards-container">
       <template
         v-for="step in cardsData"
         :key="step.id"
@@ -184,6 +207,16 @@ h2 {
   margin: 0;
   color: var(--color-text);
   transition: color 0.3s ease;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  color: var(--color-text);
+  opacity: 0.7;
 }
 
 .cards-container {

@@ -64,15 +64,15 @@ Migrate timeline data storage from localStorage to PouchDB while keeping device 
 - [x] Update location queries to use new document ID format with ">" separators
 
 ### 4.2 Step Operations  
-- [ ] Replace `addStep` to store in PouchDB with proper document ID
-- [ ] Replace `updateStep` to update PouchDB document
-- [ ] Replace `deleteStep` to remove from PouchDB
-- [ ] Update step loading to fetch from PouchDB
-- [ ] Update step ID generation to use `crypto.randomUUID()` exclusively
-- [ ] Update step creation to store only location UUIDs (not full document IDs)
-- [ ] Update step queries to use new document ID format with ">" separators
-- [ ] Create utilities to build full location document IDs from step context
-- [ ] Create utilities to convert between location objects (for app use) and location UUIDs (for storage)
+- [x] Replace `addStep` to store in PouchDB with proper document ID
+- [x] Replace `updateStep` to update PouchDB document
+- [x] Replace `deleteStep` to remove from PouchDB
+- [x] Update step loading to fetch from PouchDB
+- [x] Update step ID generation to use `crypto.randomUUID()` exclusively
+- [x] Update step creation to store only location UUIDs (not full document IDs)
+- [x] Update step queries to use new document ID format with ">" separators
+- [x] Create utilities to build full location document IDs from step context
+- [x] Create utilities to convert between location objects (for app use) and location UUIDs (for storage)
 
 ### 4.3 Trip Operations (New)
 - [ ] Create `createTrip` function to initialize new trip info document

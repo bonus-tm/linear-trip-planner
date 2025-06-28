@@ -1,12 +1,17 @@
 import {computed, ref, onMounted} from 'vue';
 import {useLocalStorage} from '@vueuse/core';
-import type {Location, LocationsMap, StepsList} from '../types';
+import type {Location, LocationsMap, StepsList, Step} from '../types';
 import {generateTripId, getOrCreateDeviceId, generateLocationId, generateStepId} from '../utils/ids';
 import {
   addLocation as dbAddLocation,
   updateLocation as dbUpdateLocation,
   deleteLocation as dbDeleteLocation,
   getLocations as dbGetLocations,
+  addStep as dbAddStep,
+  updateStep as dbUpdateStep,
+  deleteStep as dbDeleteStep,
+  getSteps as dbGetSteps,
+  validateStepLocationReferences,
   initializeDatabase
 } from '../utils/database';
 
@@ -15,7 +20,7 @@ const error = ref<string | null>(null);
 export function useAppState() {
   // Reactive state for PouchDB data
   const locations = ref<LocationsMap>({});
-  const steps = useLocalStorage<StepsList>('trip-planner-steps', []);
+  const steps = ref<StepsList>([]);
 
   // Trip and device ID management (for session use)
   const currentTripId = ref<string | null>(null);
@@ -29,9 +34,12 @@ export function useAppState() {
     try {
       await initializeDatabase();
       
-      // Load locations if we have a current trip
+      // Load data if we have a current trip
       if (currentTripId.value) {
-        await loadLocations();
+        await Promise.all([
+          loadLocations(),
+          loadSteps()
+        ]);
       }
     } catch (err) {
       console.error('Failed to initialize database:', err);
@@ -58,6 +66,24 @@ export function useAppState() {
     } catch (err) {
       console.error('Failed to load locations:', err);
       error.value = 'Failed to load locations';
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  // Load steps from PouchDB
+  const loadSteps = async (): Promise<void> => {
+    if (!currentTripId.value) return;
+    
+    try {
+      isLoading.value = true;
+      const stepsList = await dbGetSteps(deviceId.value, currentTripId.value);
+      
+      steps.value = stepsList;
+      error.value = null;
+    } catch (err) {
+      console.error('Failed to load steps:', err);
+      error.value = 'Failed to load steps';
     } finally {
       isLoading.value = false;
     }
@@ -159,37 +185,101 @@ export function useAppState() {
   };
 
   // Step operations
-  const addStep = (step: Omit<StepsList[0], 'id'>) => {
-    const newStep = {
-      ...step,
-      id: generateStepId(),
-    };
+  const addStep = async (step: Omit<Step, 'id'>): Promise<boolean> => {
+    if (!currentTripId.value) {
+      error.value = 'No active trip. Please create a new trip first.';
+      return false;
+    }
 
-    steps.value.push(newStep);
-    error.value = null;
-    return true;
+    try {
+      isLoading.value = true;
+      
+      // Validate location references exist
+      const isValid = await validateStepLocationReferences(deviceId.value, currentTripId.value, step as Step);
+      if (!isValid) {
+        error.value = 'Referenced locations do not exist';
+        return false;
+      }
+      
+      const createdStep = await dbAddStep(deviceId.value, currentTripId.value, step);
+      
+      // Update reactive state
+      steps.value.push(createdStep);
+      error.value = null;
+      return true;
+    } catch (err) {
+      console.error('Failed to add step:', err);
+      error.value = 'Failed to add step';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
   };
 
-  const updateStep = (id: string, updatedStep: Partial<StepsList[0]>) => {
-    const index = steps.value.findIndex(s => s.id === id);
+  const updateStep = async (stepId: string, updatedStep: Partial<Omit<Step, 'id'>>): Promise<boolean> => {
+    if (!currentTripId.value) {
+      error.value = 'No active trip. Please create a new trip first.';
+      return false;
+    }
+
+    const index = steps.value.findIndex(s => s.id === stepId);
     if (index === -1) {
       error.value = 'Step not found';
       return false;
     }
 
-    steps.value[index] = {
-      ...steps.value[index],
-      ...updatedStep,
-    };
+    try {
+      isLoading.value = true;
 
-    error.value = null;
-    return true;
+      // If location references are being updated, validate them
+      if (updatedStep.startLocationId || updatedStep.finishLocationId) {
+        const fullUpdatedStep = { ...steps.value[index], ...updatedStep } as Step;
+        const isValid = await validateStepLocationReferences(deviceId.value, currentTripId.value, fullUpdatedStep);
+        if (!isValid) {
+          error.value = 'Referenced locations do not exist';
+          return false;
+        }
+      }
+
+      await dbUpdateStep(deviceId.value, currentTripId.value, stepId, updatedStep);
+      
+      // Update reactive state
+      steps.value[index] = {
+        ...steps.value[index],
+        ...updatedStep,
+      };
+      error.value = null;
+      return true;
+    } catch (err) {
+      console.error('Failed to update step:', err);
+      error.value = 'Failed to update step';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
   };
 
-  const deleteStep = (id: string) => {
-    steps.value = steps.value.filter(s => s.id !== id);
-    error.value = null;
-    return true;
+  const deleteStep = async (stepId: string): Promise<boolean> => {
+    if (!currentTripId.value) {
+      error.value = 'No active trip. Please create a new trip first.';
+      return false;
+    }
+
+    try {
+      isLoading.value = true;
+      await dbDeleteStep(deviceId.value, currentTripId.value, stepId);
+      
+      // Update reactive state
+      steps.value = steps.value.filter(s => s.id !== stepId);
+      error.value = null;
+      return true;
+    } catch (err) {
+      console.error('Failed to delete step:', err);
+      error.value = 'Failed to delete step';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
   };
 
   // Trip operations
@@ -201,8 +291,11 @@ export function useAppState() {
     locations.value = {};
     steps.value = [];
     
-    // Load locations for the new trip (should be empty)
-    await loadLocations();
+    // Load data for the new trip (should be empty)
+    await Promise.all([
+      loadLocations(),
+      loadSteps()
+    ]);
     
     error.value = null;
     return newTripId;
@@ -239,6 +332,7 @@ export function useAppState() {
     addStep,
     updateStep,
     deleteStep,
+    loadSteps,
 
     // Trip operations
     createNewTrip,

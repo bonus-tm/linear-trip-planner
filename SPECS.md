@@ -405,6 +405,93 @@ Locations are stored as PouchDB documents with the following structure:
 - **LocationEditModal**: Compatible with new async flow
 - **ResetButton**: Updated to handle async trip creation
 
+## Step Operations Implementation
+
+### Implementation Status
+✅ **Phase 4.2 Step Operations - COMPLETED**
+- **addStep**: Implemented with PouchDB storage using proper document ID format
+- **updateStep**: Implemented with PouchDB document updates  
+- **deleteStep**: Implemented with PouchDB document removal
+- **getSteps**: Implemented with PouchDB queries using document ID ranges
+- **loadSteps**: Implemented for loading all steps for a trip
+- **ID Generation**: All step IDs now use `crypto.randomUUID()` exclusively
+- **Query Patterns**: All step queries use new ">" separator format
+- **Location References**: Steps store only location UUIDs (not full document IDs)
+
+### Async Operation Handling
+All step operations are now asynchronous and return Promises:
+```typescript
+// Examples of updated function signatures
+const addStep = async (step: Omit<Step, 'id'>): Promise<boolean>
+const updateStep = async (stepId: string, updatedStep: Partial<Omit<Step, 'id'>>): Promise<boolean>
+const deleteStep = async (stepId: string): Promise<boolean>
+const loadSteps = async (): Promise<void>
+```
+
+### Location Reference Management
+Steps store location references as UUIDs and validate them during operations:
+```typescript
+// Location reference validation
+const validateStepLocationReferences = async (deviceId: string, tripId: string, step: Step): Promise<boolean>
+
+// Get full location document IDs for querying
+const getLocationDocIdsFromStep = (deviceId: string, tripId: string, step: Step): string[]
+
+// Reference utilities for future compatibility
+const resolveLocationReferences = (steps: Step[], locations: Record<string, Location>): Step[]
+const createLocationReferences = (steps: Step[]): Step[]
+```
+
+### Document Storage Format
+Steps are stored as PouchDB documents with the following structure:
+```json
+{
+  "_id": "device-uuid>trip-uuid>step>step-uuid",
+  "type": "step",
+  "device_id": "device-uuid",
+  "trip_id": "trip-uuid",
+  "step_id": "step-uuid",
+  "data": {
+    "type": "move",
+    "startDate": "2024-01-15T10:00:00.000Z",
+    "finishDate": "2024-01-15T14:30:00.000Z",
+    "startTimestamp": 1705311600000,
+    "finishTimestamp": 1705327800000,
+    "startLocationId": "location-uuid-only",
+    "finishLocationId": "location-uuid-only",
+    "startAirport": "JFK",
+    "finishAirport": "LHR",
+    "description": "Flight to London"
+  },
+  "created_at": 1699123456789,
+  "updated_at": 1699123456789
+}
+```
+
+### Location Reference Validation
+- **Creation Validation**: All location references validated before step creation
+- **Update Validation**: Location references validated when updating step locations
+- **Reference Integrity**: Prevents creation of steps with non-existent location references
+- **Automatic Resolution**: UI components automatically resolve location UUIDs to location objects for display
+
+### Loading States and Error Handling
+- **Loading Indicators**: All UI components show loading states during async operations
+- **Error Management**: Comprehensive error handling with user-friendly messages
+- **Reactive Updates**: Step state automatically updated after successful operations
+- **Validation**: Location reference validation and business rule enforcement
+
+### UI Integration
+- **StepsTable**: Updated to handle async operations with loading states
+- **MoveEditModal**: Compatible with new async flow and reference validation
+- **StayEditModal**: Compatible with new async flow and reference validation
+- **Step Cards**: Automatically resolve location references for display
+
+### Data Migration Notes
+- **localStorage Removal**: Steps no longer stored in localStorage
+- **Fresh Start**: Users start with empty step data when using PouchDB
+- **UUID Consistency**: All step and location IDs use consistent UUID format
+- **Reference Integrity**: Maintains referential integrity between steps and locations
+
 ## Error Handling Strategy
 
 ### Error Types

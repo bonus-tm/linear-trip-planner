@@ -1,7 +1,7 @@
 import PouchDB from 'pouchdb';
-import type { Location, LocationDocument, DatabaseDocument } from '../types';
-import { createLocationDocId, parseDocumentId } from './documentIds';
-import { generateLocationId } from './ids';
+import type { Location, LocationDocument, DatabaseDocument, Step, StepDocument } from '../types';
+import { createLocationDocId, createStepDocId, parseDocumentId } from './documentIds';
+import { generateLocationId, generateStepId } from './ids';
 
 // Database configuration
 export const DB_NAME = 'timeline-data';
@@ -239,6 +239,247 @@ export async function getLocationByDocumentId(locationDocId: string): Promise<Lo
     console.error('Error getting location by document ID:', error);
     handleDatabaseError(error);
     throw error;
+  }
+}
+
+// STEP OPERATIONS
+
+/**
+ * Add a new step to PouchDB
+ * @param deviceId - Device UUID
+ * @param tripId - Trip UUID 
+ * @param step - Step data without ID
+ * @returns Promise<Step> - Created step with generated ID
+ */
+export async function addStep(deviceId: string, tripId: string, step: Omit<Step, 'id'>): Promise<Step> {
+  const db = getDatabase();
+  
+  try {
+    const stepId = generateStepId();
+    const timestamp = Date.now();
+    
+    const stepDocument: StepDocument = {
+      _id: createStepDocId(deviceId, tripId, stepId),
+      type: 'step',
+      device_id: deviceId,
+      trip_id: tripId,
+      step_id: stepId,
+      data: {
+        type: step.type,
+        startDate: step.startDate,
+        finishDate: step.finishDate,
+        startTimestamp: step.startTimestamp,
+        finishTimestamp: step.finishTimestamp,
+        startLocationId: step.startLocationId,
+        finishLocationId: step.finishLocationId,
+        startAirport: step.startAirport,
+        finishAirport: step.finishAirport,
+        description: step.description
+      },
+      created_at: timestamp,
+      updated_at: timestamp
+    };
+    
+    await db.put(stepDocument);
+    
+    // Return the step in the format expected by the app
+    const createdStep: Step = {
+      id: stepId,
+      type: step.type,
+      startDate: step.startDate,
+      finishDate: step.finishDate,
+      startTimestamp: step.startTimestamp,
+      finishTimestamp: step.finishTimestamp,
+      startLocationId: step.startLocationId,
+      finishLocationId: step.finishLocationId,
+      startAirport: step.startAirport,
+      finishAirport: step.finishAirport,
+      description: step.description
+    };
+    
+    return createdStep;
+  } catch (error: any) {
+    console.error('Error adding step:', error);
+    handleDatabaseError(error);
+    throw error;
+  }
+}
+
+/**
+ * Update an existing step in PouchDB
+ * @param deviceId - Device UUID
+ * @param tripId - Trip UUID
+ * @param stepId - Step UUID
+ * @param data - Partial step data to update
+ * @returns Promise<boolean> - Success status
+ */
+export async function updateStep(deviceId: string, tripId: string, stepId: string, data: Partial<Omit<Step, 'id'>>): Promise<boolean> {
+  const db = getDatabase();
+  
+  try {
+    const documentId = createStepDocId(deviceId, tripId, stepId);
+    const existingDoc = await db.get<StepDocument>(documentId);
+    
+    const updatedDocument: StepDocument = {
+      ...existingDoc,
+      data: {
+        ...existingDoc.data,
+        ...data
+      },
+      updated_at: Date.now()
+    };
+    
+    await db.put(updatedDocument);
+    return true;
+  } catch (error: any) {
+    if (error.status === 404) {
+      throw new DocumentNotFoundError(`Step with ID ${stepId} not found`);
+    }
+    console.error('Error updating step:', error);
+    handleDatabaseError(error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a step from PouchDB
+ * @param deviceId - Device UUID
+ * @param tripId - Trip UUID
+ * @param stepId - Step UUID
+ * @returns Promise<boolean> - Success status
+ */
+export async function deleteStep(deviceId: string, tripId: string, stepId: string): Promise<boolean> {
+  const db = getDatabase();
+  
+  try {
+    const documentId = createStepDocId(deviceId, tripId, stepId);
+    const existingDoc = await db.get<StepDocument>(documentId);
+    
+    await db.remove(existingDoc);
+    return true;
+  } catch (error: any) {
+    if (error.status === 404) {
+      throw new DocumentNotFoundError(`Step with ID ${stepId} not found`);
+    }
+    console.error('Error deleting step:', error);
+    handleDatabaseError(error);
+    throw error;
+  }
+}
+
+/**
+ * Get all steps for a specific device and trip
+ * @param deviceId - Device UUID
+ * @param tripId - Trip UUID
+ * @returns Promise<Step[]> - Array of steps
+ */
+export async function getSteps(deviceId: string, tripId: string): Promise<Step[]> {
+  const db = getDatabase();
+  
+  try {
+    // Query all step documents for this device + trip
+    const result = await db.allDocs<StepDocument>({
+      include_docs: true,
+      startkey: `${deviceId}>${tripId}>step>`,
+      endkey: `${deviceId}>${tripId}>step>\ufff0`
+    });
+    
+    return result.rows
+      .filter(row => row.doc && row.doc.type === 'step')
+      .map(row => {
+        const doc = row.doc!;
+        return {
+          id: doc.step_id,
+          type: doc.data.type,
+          startDate: doc.data.startDate,
+          finishDate: doc.data.finishDate,
+          startTimestamp: doc.data.startTimestamp,
+          finishTimestamp: doc.data.finishTimestamp,
+          startLocationId: doc.data.startLocationId,
+          finishLocationId: doc.data.finishLocationId,
+          startAirport: doc.data.startAirport,
+          finishAirport: doc.data.finishAirport,
+          description: doc.data.description
+        } as Step;
+      });
+  } catch (error: any) {
+    console.error('Error getting steps:', error);
+    handleDatabaseError(error);
+    throw error;
+  }
+}
+
+// LOCATION REFERENCE UTILITIES FOR STEPS
+
+/**
+ * Convert location UUIDs in steps to location objects for app use
+ * This resolves step location references to actual location data
+ * @param steps - Array of steps with location UUIDs
+ * @param locations - Map of available locations
+ * @returns Steps with resolved location references (for compatibility only - steps still store UUIDs)
+ */
+export function resolveLocationReferences(steps: Step[], locations: Record<string, Location>): Step[] {
+  // Note: This function is for future compatibility if we need to embed location objects
+  // Currently steps store location UUIDs and resolve them in the UI layer
+  return steps;
+}
+
+/**
+ * Convert location objects in steps to location UUIDs for storage
+ * This ensures steps only store location UUIDs, not full objects
+ * @param steps - Array of steps that might have location objects
+ * @returns Steps with only location UUIDs
+ */
+export function createLocationReferences(steps: Step[]): Step[] {
+  // Note: This function is for future compatibility if we receive steps with embedded objects
+  // Currently our Step interface already uses UUIDs, so this is a pass-through
+  return steps;
+}
+
+/**
+ * Get full location document IDs for a step (for querying locations)
+ * @param deviceId - Device UUID
+ * @param tripId - Trip UUID
+ * @param step - Step with location UUIDs
+ * @returns Array of full location document IDs
+ */
+export function getLocationDocIdsFromStep(deviceId: string, tripId: string, step: Step): string[] {
+  const locationIds = [step.startLocationId];
+  if (step.finishLocationId) {
+    locationIds.push(step.finishLocationId);
+  }
+  return locationIds.map(locId => createLocationDocId(deviceId, tripId, locId));
+}
+
+/**
+ * Validate that all location references in a step exist
+ * @param deviceId - Device UUID
+ * @param tripId - Trip UUID
+ * @param step - Step to validate
+ * @returns Promise<boolean> - True if all references are valid
+ */
+export async function validateStepLocationReferences(deviceId: string, tripId: string, step: Step): Promise<boolean> {
+  try {
+    const startLocationDocId = createLocationDocId(deviceId, tripId, step.startLocationId);
+    const startLocation = await getLocationByDocumentId(startLocationDocId);
+    
+    if (!startLocation) {
+      return false;
+    }
+    
+    if (step.finishLocationId) {
+      const finishLocationDocId = createLocationDocId(deviceId, tripId, step.finishLocationId);
+      const finishLocation = await getLocationByDocumentId(finishLocationDocId);
+      
+      if (!finishLocation) {
+        return false;
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error validating step location references:', error);
+    return false;
   }
 }
 
