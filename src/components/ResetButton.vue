@@ -27,8 +27,9 @@ const handleNewTravel = () => {
       try {
         isResetting.value = true;
         
-        // Generate new trip ID and clear all locations and steps
-        await createNewTrip();
+        // Generate new trip ID, create trip document, and clear all locations and steps
+        // Old trip data remains in PouchDB (no deletion) as specified in requirements
+        await createNewTrip('My Trip', '');
 
         // Reset zoom level to 'fit' - keeping this in localStorage as specified
         localStorage.setItem('trip-planner-zoom', 'fit');

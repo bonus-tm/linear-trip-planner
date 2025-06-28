@@ -1,6 +1,6 @@
 import PouchDB from 'pouchdb';
-import type { Location, LocationDocument, DatabaseDocument, Step, StepDocument } from '../types';
-import { createLocationDocId, createStepDocId, parseDocumentId } from './documentIds';
+import type { Location, LocationDocument, DatabaseDocument, Step, StepDocument, Trip, TripDocument } from '../types';
+import { createLocationDocId, createStepDocId, createTripDocId, parseDocumentId } from './documentIds';
 import { generateLocationId, generateStepId } from './ids';
 
 // Database configuration
@@ -404,6 +404,173 @@ export async function getSteps(deviceId: string, tripId: string): Promise<Step[]
       });
   } catch (error: any) {
     console.error('Error getting steps:', error);
+    handleDatabaseError(error);
+    throw error;
+  }
+}
+
+// TRIP OPERATIONS
+
+/**
+ * Create a new trip document in PouchDB
+ * @param deviceId - Device UUID
+ * @param tripId - Trip UUID
+ * @param title - Trip title
+ * @param subtitle - Trip subtitle
+ * @returns Promise<boolean> - Success status
+ */
+export async function createTrip(deviceId: string, tripId: string, title: string = 'My Trip', subtitle: string = ''): Promise<boolean> {
+  const db = getDatabase();
+  
+  try {
+    const timestamp = Date.now();
+    
+    const tripDocument: TripDocument = {
+      _id: createTripDocId(deviceId, tripId),
+      type: 'trip',
+      device_id: deviceId,
+      trip_id: tripId,
+      data: {
+        created_at: timestamp,
+        updated_at: timestamp,
+        title,
+        subtitle
+      }
+    };
+    
+    await db.put(tripDocument);
+    return true;
+  } catch (error: any) {
+    console.error('Error creating trip:', error);
+    handleDatabaseError(error);
+    throw error;
+  }
+}
+
+/**
+ * Update trip metadata in PouchDB
+ * @param deviceId - Device UUID
+ * @param tripId - Trip UUID
+ * @param data - Partial trip data to update
+ * @returns Promise<boolean> - Success status
+ */
+export async function updateTrip(deviceId: string, tripId: string, data: Partial<Pick<Trip, 'title' | 'subtitle'>>): Promise<boolean> {
+  const db = getDatabase();
+  
+  try {
+    const documentId = createTripDocId(deviceId, tripId);
+    const existingDoc = await db.get<TripDocument>(documentId);
+    
+    const updatedDocument: TripDocument = {
+      ...existingDoc,
+      data: {
+        ...existingDoc.data,
+        ...data,
+        updated_at: Date.now()
+      }
+    };
+    
+    await db.put(updatedDocument);
+    return true;
+  } catch (error: any) {
+    if (error.status === 404) {
+      throw new DocumentNotFoundError(`Trip with ID ${tripId} not found`);
+    }
+    console.error('Error updating trip:', error);
+    handleDatabaseError(error);
+    throw error;
+  }
+}
+
+/**
+ * Soft-delete a trip by setting deleted_at timestamp
+ * @param deviceId - Device UUID
+ * @param tripId - Trip UUID
+ * @returns Promise<boolean> - Success status
+ */
+export async function deleteTrip(deviceId: string, tripId: string): Promise<boolean> {
+  const db = getDatabase();
+  
+  try {
+    const documentId = createTripDocId(deviceId, tripId);
+    const existingDoc = await db.get<TripDocument>(documentId);
+    
+    const updatedDocument: TripDocument = {
+      ...existingDoc,
+      data: {
+        ...existingDoc.data,
+        deleted_at: Date.now(),
+        updated_at: Date.now()
+      }
+    };
+    
+    await db.put(updatedDocument);
+    return true;
+  } catch (error: any) {
+    if (error.status === 404) {
+      throw new DocumentNotFoundError(`Trip with ID ${tripId} not found`);
+    }
+    console.error('Error deleting trip:', error);
+    handleDatabaseError(error);
+    throw error;
+  }
+}
+
+/**
+ * Get trip document from PouchDB
+ * @param deviceId - Device UUID
+ * @param tripId - Trip UUID
+ * @returns Promise<Trip | null> - Trip data or null if not found
+ */
+export async function getTrip(deviceId: string, tripId: string): Promise<Trip | null> {
+  const db = getDatabase();
+  
+  try {
+    const documentId = createTripDocId(deviceId, tripId);
+    const doc = await db.get<TripDocument>(documentId);
+    
+    if (doc.type !== 'trip') {
+      return null;
+    }
+    
+    // Don't return deleted trips unless specifically requested
+    if (doc.data.deleted_at) {
+      return null;
+    }
+    
+    return doc.data;
+  } catch (error: any) {
+    if (error.status === 404) {
+      return null;
+    }
+    console.error('Error getting trip:', error);
+    handleDatabaseError(error);
+    throw error;
+  }
+}
+
+/**
+ * Load all trip data (trip info, locations, steps) for a specific device and trip
+ * @param deviceId - Device UUID
+ * @param tripId - Trip UUID
+ * @returns Promise with trip info, locations, and steps
+ */
+export async function loadTripData(deviceId: string, tripId: string): Promise<{ 
+  trip: Trip | null; 
+  locations: Location[]; 
+  steps: Step[] 
+}> {
+  try {
+    // Load all data in parallel
+    const [trip, locations, steps] = await Promise.all([
+      getTrip(deviceId, tripId),
+      getLocations(deviceId, tripId),
+      getSteps(deviceId, tripId)
+    ]);
+    
+    return { trip, locations, steps };
+  } catch (error: any) {
+    console.error('Error loading trip data:', error);
     handleDatabaseError(error);
     throw error;
   }

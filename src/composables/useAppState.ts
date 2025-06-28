@@ -1,6 +1,6 @@
 import {computed, ref, onMounted} from 'vue';
 import {useLocalStorage} from '@vueuse/core';
-import type {Location, LocationsMap, StepsList, Step} from '../types';
+import type {Location, LocationsMap, StepsList, Step, Trip} from '../types';
 import {generateTripId, getOrCreateDeviceId, generateLocationId, generateStepId} from '../utils/ids';
 import {
   addLocation as dbAddLocation,
@@ -11,6 +11,11 @@ import {
   updateStep as dbUpdateStep,
   deleteStep as dbDeleteStep,
   getSteps as dbGetSteps,
+  createTrip as dbCreateTrip,
+  updateTrip as dbUpdateTrip,
+  deleteTrip as dbDeleteTrip,
+  getTrip as dbGetTrip,
+  loadTripData as dbLoadTripData,
   validateStepLocationReferences,
   initializeDatabase
 } from '../utils/database';
@@ -21,6 +26,7 @@ export function useAppState() {
   // Reactive state for PouchDB data
   const locations = ref<LocationsMap>({});
   const steps = ref<StepsList>([]);
+  const currentTrip = ref<Trip | null>(null);
 
   // Trip and device ID management (for session use)
   const currentTripId = ref<string | null>(null);
@@ -36,10 +42,7 @@ export function useAppState() {
       
       // Load data if we have a current trip
       if (currentTripId.value) {
-        await Promise.all([
-          loadLocations(),
-          loadSteps()
-        ]);
+        await loadTripData();
       }
     } catch (err) {
       console.error('Failed to initialize database:', err);
@@ -49,15 +52,18 @@ export function useAppState() {
 
   // Load locations from PouchDB
   const loadLocations = async (): Promise<void> => {
-    if (!currentTripId.value) return;
-    
+    if (!currentTripId.value) {
+      locations.value = {};
+      return;
+    }
+
     try {
       isLoading.value = true;
-      const locationsList = await dbGetLocations(deviceId.value, currentTripId.value);
+      const loadedLocations = await dbGetLocations(deviceId.value, currentTripId.value);
       
-      // Convert array to map for reactive state
+      // Convert array to map for app compatibility
       const locationsMap: LocationsMap = {};
-      locationsList.forEach(location => {
+      loadedLocations.forEach(location => {
         locationsMap[location.id] = location;
       });
       
@@ -73,17 +79,50 @@ export function useAppState() {
 
   // Load steps from PouchDB
   const loadSteps = async (): Promise<void> => {
-    if (!currentTripId.value) return;
-    
+    if (!currentTripId.value) {
+      steps.value = [];
+      return;
+    }
+
     try {
       isLoading.value = true;
-      const stepsList = await dbGetSteps(deviceId.value, currentTripId.value);
-      
-      steps.value = stepsList;
+      const loadedSteps = await dbGetSteps(deviceId.value, currentTripId.value);
+      steps.value = loadedSteps;
       error.value = null;
     } catch (err) {
       console.error('Failed to load steps:', err);
       error.value = 'Failed to load steps';
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  // Load trip data from PouchDB
+  const loadTripData = async (): Promise<void> => {
+    if (!currentTripId.value) {
+      locations.value = {};
+      steps.value = [];
+      currentTrip.value = null;
+      return;
+    }
+
+    try {
+      isLoading.value = true;
+      const data = await dbLoadTripData(deviceId.value, currentTripId.value);
+      
+      // Convert locations array to map for app compatibility
+      const locationsMap: LocationsMap = {};
+      data.locations.forEach(location => {
+        locationsMap[location.id] = location;
+      });
+      
+      locations.value = locationsMap;
+      steps.value = data.steps;
+      currentTrip.value = data.trip;
+      error.value = null;
+    } catch (err) {
+      console.error('Failed to load trip data:', err);
+      error.value = 'Failed to load trip data';
     } finally {
       isLoading.value = false;
     }
@@ -283,22 +322,93 @@ export function useAppState() {
   };
 
   // Trip operations
-  const createNewTrip = async (): Promise<string> => {
-    const newTripId = generateTripId();
-    currentTripId.value = newTripId;
-    
-    // Clear current locations and steps for new trip
-    locations.value = {};
-    steps.value = [];
-    
-    // Load data for the new trip (should be empty)
-    await Promise.all([
-      loadLocations(),
-      loadSteps()
-    ]);
-    
-    error.value = null;
-    return newTripId;
+  const createNewTrip = async (title: string = 'My Trip', subtitle: string = ''): Promise<string> => {
+    try {
+      isLoading.value = true;
+      const newTripId = generateTripId();
+      
+      // Create the trip document in PouchDB
+      await dbCreateTrip(deviceId.value, newTripId, title, subtitle);
+      
+      // Update app state
+      currentTripId.value = newTripId;
+      
+      // Clear current locations and steps for new trip
+      locations.value = {};
+      steps.value = [];
+      
+      // Load the new trip data (should be empty except for trip info)
+      await loadTripData();
+      
+      error.value = null;
+      return newTripId;
+    } catch (err) {
+      console.error('Failed to create new trip:', err);
+      error.value = 'Failed to create new trip';
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const updateTripInfo = async (data: Partial<Pick<Trip, 'title' | 'subtitle'>>): Promise<boolean> => {
+    if (!currentTripId.value) {
+      error.value = 'No active trip. Please create a new trip first.';
+      return false;
+    }
+
+    try {
+      isLoading.value = true;
+      await dbUpdateTrip(deviceId.value, currentTripId.value, data);
+      
+      // Update reactive state
+      if (currentTrip.value) {
+        currentTrip.value = {
+          ...currentTrip.value,
+          ...data,
+          updated_at: Date.now()
+        };
+      }
+      
+      error.value = null;
+      return true;
+    } catch (err) {
+      console.error('Failed to update trip info:', err);
+      error.value = 'Failed to update trip info';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const deleteTripInfo = async (): Promise<boolean> => {
+    if (!currentTripId.value) {
+      error.value = 'No active trip. Please create a new trip first.';
+      return false;
+    }
+
+    try {
+      isLoading.value = true;
+      await dbDeleteTrip(deviceId.value, currentTripId.value);
+      
+      // Update reactive state
+      if (currentTrip.value) {
+        currentTrip.value = {
+          ...currentTrip.value,
+          deleted_at: Date.now(),
+          updated_at: Date.now()
+        };
+      }
+      
+      error.value = null;
+      return true;
+    } catch (err) {
+      console.error('Failed to delete trip:', err);
+      error.value = 'Failed to delete trip';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
   };
 
   // Computed values
@@ -313,6 +423,7 @@ export function useAppState() {
     // State
     locations,
     steps,
+    currentTrip,
     isLoading,
     error,
     currentTripId,
@@ -336,5 +447,8 @@ export function useAppState() {
 
     // Trip operations
     createNewTrip,
+    updateTripInfo,
+    deleteTripInfo,
+    loadTripData,
   };
 } 

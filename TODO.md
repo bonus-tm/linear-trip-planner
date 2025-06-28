@@ -75,10 +75,10 @@ Migrate timeline data storage from localStorage to PouchDB while keeping device 
 - [x] Create utilities to convert between location objects (for app use) and location UUIDs (for storage)
 
 ### 4.3 Trip Operations (New)
-- [ ] Create `createTrip` function to initialize new trip info document
-- [ ] Create `updateTrip` function to modify trip metadata
-- [ ] Create `deleteTrip` function to soft-delete trip (set `deleted_at`)
-- [ ] Create trip loading function
+- [x] Create `createTrip` function to initialize new trip info document
+- [x] Create `updateTrip` function to modify trip metadata
+- [x] Create `deleteTrip` function to soft-delete trip (set `deleted_at`)
+- [x] Create trip loading function
 
 ## Phase 5: App State Management Updates
 
