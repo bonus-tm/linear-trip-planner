@@ -68,11 +68,9 @@ interface LocationDocument {
   device_id: string; // UUID
   trip_id: string; // UUID
   location_id: string; // UUID
-  data: {
-    name: string;
-    coordinates: { lat: number; lng: number };
-    timezone: number; // -12 to +12 UTC offset
-  };
+  name: string;
+  coordinates: { lat: number; lng: number };
+  timezone: number; // -12 to +12 UTC offset
   created_at: number; // timestamp
   updated_at: number; // timestamp
 }
@@ -89,18 +87,16 @@ interface StepDocument {
   device_id: string; // UUID
   trip_id: string; // UUID
   step_id: string; // UUID
-  data: {
-    type: 'move' | 'stay';
-    startDate: string; // ISO datetime
-    finishDate: string; // ISO datetime  
-    startTimestamp: number;
-    finishTimestamp: number;
-    startLocationId: string; // Location UUID only (device_id + trip_id can be derived from step document)
-    finishLocationId?: string; // Location UUID only (only for 'move' type)
-    startAirport?: string; // 3 letters, optional
-    finishAirport?: string; // 3 letters, optional
-    description?: string; // optional
-  };
+  stepType: 'move' | 'stay';
+  startDate: string; // ISO datetime
+  finishDate: string; // ISO datetime  
+  startTimestamp: number;
+  finishTimestamp: number;
+  startLocationId: string; // Location UUID only (device_id + trip_id can be derived from step document)
+  finishLocationId?: string; // Location UUID only (only for 'move' type)
+  startAirport?: string; // 3 letters, optional
+  finishAirport?: string; // 3 letters, optional
+  description?: string; // optional
   created_at: number; // timestamp
   updated_at: number; // timestamp
 }
@@ -116,19 +112,19 @@ interface StepDocument {
   "device_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "trip_id": "f1e2d3c4-b5a6-9870-dcba-fe0987654321",
   "step_id": "1234567b-cdef-0123-4567-89abcdef0123",
-  "data": {
-    "type": "move",
-    "startLocationId": "9876543a-bcde-f012-3456-789abcdef012",
-    "finishLocationId": "fedcba98-7654-3210-fedc-ba9876543210",
-    "startDate": "2024-01-15T10:00:00.000Z",
-    "finishDate": "2024-01-15T14:30:00.000Z",
-    "startTimestamp": 1705311600000,
-    "finishTimestamp": 1705327800000
-  }
+  "stepType": "move",
+  "startLocationId": "9876543a-bcde-f012-3456-789abcdef012",
+  "finishLocationId": "fedcba98-7654-3210-fedc-ba9876543210",
+  "startDate": "2024-01-15T10:00:00.000Z",
+  "finishDate": "2024-01-15T14:30:00.000Z",
+  "startTimestamp": 1705311600000,
+  "finishTimestamp": 1705327800000,
+  "created_at": 1699123456789,
+  "updated_at": 1699123456789
 }
 ```
 
-**Note**: To get the full location document ID, combine: `${step.device_id}>${step.trip_id}>location>${step.data.startLocationId}`
+**Note**: To get the full location document ID, combine: `${step.device_id}>${step.trip_id}>location>${step.startLocationId}`
 
 ### Trip Info Documents (New)
 ```typescript
@@ -138,13 +134,11 @@ interface TripDocument {
   type: 'trip';
   device_id: string; // UUID
   trip_id: string; // UUID
-  data: {
-    created_at: number; // timestamp
-    updated_at: number; // timestamp  
-    deleted_at?: number; // timestamp, optional (soft delete)
-    title: string;
-    subtitle: string;
-  };
+  created_at: number; // timestamp
+  updated_at: number; // timestamp  
+  deleted_at?: number; // timestamp, optional (soft delete)
+  title: string;
+  subtitle: string;
 }
 ```
 
@@ -239,9 +233,9 @@ function getLocationIdFromReference(locationDocId: string): string | null {
 
 // Get location document IDs for a step (for querying locations)
 function getStepLocationDocIds(stepDocument: StepDocument): string[] {
-  const locationIds = [stepDocument.data.startLocationId];
-  if (stepDocument.data.finishLocationId) {
-    locationIds.push(stepDocument.data.finishLocationId);
+  const locationIds = [stepDocument.startLocationId];
+  if (stepDocument.finishLocationId) {
+    locationIds.push(stepDocument.finishLocationId);
   }
   return locationIds.map(locId => buildLocationDocIdFromStep(stepDocument, locId));
 }
@@ -389,11 +383,9 @@ Locations are stored as PouchDB documents with the following structure:
   "device_id": "device-uuid",
   "trip_id": "trip-uuid", 
   "location_id": "location-uuid",
-  "data": {
-    "name": "Location Name",
-    "coordinates": { "lat": 51.5074, "lng": -0.1278 },
-    "timezone": 0
-  },
+  "name": "Location Name",
+  "coordinates": { "lat": 51.5074, "lng": -0.1278 },
+  "timezone": 0,
   "created_at": 1699123456789,
   "updated_at": 1699123456789
 }
@@ -451,18 +443,16 @@ Steps are stored as PouchDB documents with the following structure:
   "device_id": "device-uuid",
   "trip_id": "trip-uuid",
   "step_id": "step-uuid",
-  "data": {
-    "type": "move",
-    "startDate": "2024-01-15T10:00:00.000Z",
-    "finishDate": "2024-01-15T14:30:00.000Z",
-    "startTimestamp": 1705311600000,
-    "finishTimestamp": 1705327800000,
-    "startLocationId": "location-uuid-only",
-    "finishLocationId": "location-uuid-only",
-    "startAirport": "JFK",
-    "finishAirport": "LHR",
-    "description": "Flight to London"
-  },
+  "stepType": "move",
+  "startDate": "2024-01-15T10:00:00.000Z",
+  "finishDate": "2024-01-15T14:30:00.000Z",
+  "startTimestamp": 1705311600000,
+  "finishTimestamp": 1705327800000,
+  "startLocationId": "location-uuid-only",
+  "finishLocationId": "location-uuid-only",
+  "startAirport": "JFK",
+  "finishAirport": "LHR",
+  "description": "Flight to London",
   "created_at": 1699123456789,
   "updated_at": 1699123456789
 }
@@ -535,12 +525,10 @@ Trips are stored as PouchDB documents with the following structure:
   "type": "trip",
   "device_id": "device-uuid",
   "trip_id": "trip-uuid",
-  "data": {
-    "created_at": 1699123456789,
-    "updated_at": 1699123456789,
-    "title": "My Amazing Trip",
-    "subtitle": "Summer 2024 Adventure"
-  }
+  "created_at": 1699123456789,
+  "updated_at": 1699123456789,
+  "title": "My Amazing Trip",
+  "subtitle": "Summer 2024 Adventure"
 }
 ```
 
@@ -552,13 +540,11 @@ Trip deletion is implemented as a soft delete, preserving trip data:
   "type": "trip", 
   "device_id": "device-uuid",
   "trip_id": "trip-uuid",
-  "data": {
-    "created_at": 1699123456789,
-    "updated_at": 1699234567890,
-    "deleted_at": 1699234567890,
-    "title": "Deleted Trip",
-    "subtitle": "No longer active"
-  }
+  "created_at": 1699123456789,
+  "updated_at": 1699234567890,
+  "deleted_at": 1699234567890,
+  "title": "Deleted Trip",
+  "subtitle": "No longer active"
 }
 ```
 

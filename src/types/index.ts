@@ -116,11 +116,9 @@ export interface LocationDocument extends PouchDBMeta {
   device_id: string; // UUID
   trip_id: string; // UUID
   location_id: string; // UUID
-  data: {
-    name: string;
-    coordinates: { lat: number; lng: number };
-    timezone: number; // -12 to +12 UTC offset
-  };
+  name: string;
+  coordinates: { lat: number; lng: number };
+  timezone: number; // -12 to +12 UTC offset
   created_at: number; // timestamp
   updated_at: number; // timestamp
 }
@@ -130,18 +128,16 @@ export interface StepDocument extends PouchDBMeta {
   device_id: string; // UUID
   trip_id: string; // UUID
   step_id: string; // UUID
-  data: {
-    type: 'move' | 'stay';
-    startDate: string; // ISO datetime
-    finishDate: string; // ISO datetime  
-    startTimestamp: number;
-    finishTimestamp: number;
-    startLocationId: string; // Location UUID only (device_id + trip_id can be derived from step document)
-    finishLocationId?: string; // Location UUID only (only for 'move' type)
-    startAirport?: string; // 3 letters, optional
-    finishAirport?: string; // 3 letters, optional
-    description?: string; // optional
-  };
+  stepType: 'move' | 'stay';
+  startDate: string; // ISO datetime
+  finishDate: string; // ISO datetime  
+  startTimestamp: number;
+  finishTimestamp: number;
+  startLocationId: string; // Location UUID only (device_id + trip_id can be derived from step document)
+  finishLocationId?: string; // Location UUID only (only for 'move' type)
+  startAirport?: string; // 3 letters, optional
+  finishAirport?: string; // 3 letters, optional
+  description?: string; // optional
   created_at: number; // timestamp
   updated_at: number; // timestamp
 }
@@ -150,7 +146,11 @@ export interface TripDocument extends PouchDBMeta {
   type: 'trip';
   device_id: string; // UUID
   trip_id: string; // UUID
-  data: Trip;
+  created_at: number; // timestamp
+  updated_at: number; // timestamp 
+  deleted_at?: number; // timestamp, optional (soft delete)
+  title: string;
+  subtitle: string;
 }
 
 // Union type for all document types

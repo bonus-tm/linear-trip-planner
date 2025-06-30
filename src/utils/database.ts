@@ -89,11 +89,9 @@ export async function addLocation(deviceId: string, tripId: string, location: Om
       device_id: deviceId,
       trip_id: tripId,
       location_id: locationId,
-      data: {
-        name: location.name,
-        coordinates: location.coordinates,
-        timezone: location.timezone,
-      },
+      name: location.name,
+      coordinates: location.coordinates,
+      timezone: location.timezone,
       created_at: timestamp,
       updated_at: timestamp,
     };
@@ -138,10 +136,7 @@ export async function updateLocation(
 
     const updatedDocument: LocationDocument = {
       ...existingDoc,
-      data: {
-        ...existingDoc.data,
-        ...data,
-      },
+      ...data,
       updated_at: Date.now(),
     };
 
@@ -206,9 +201,9 @@ export async function getLocations(deviceId: string, tripId: string): Promise<Lo
         const doc = row.doc!;
         return {
           id: doc.location_id,
-          name: doc.data.name,
-          coordinates: doc.data.coordinates,
-          timezone: doc.data.timezone,
+          name: doc.name,
+          coordinates: doc.coordinates,
+          timezone: doc.timezone,
         } as Location;
       });
   } catch (error: any) {
@@ -235,9 +230,9 @@ export async function getLocationByDocumentId(locationDocId: string): Promise<Lo
 
     return {
       id: doc.location_id,
-      name: doc.data.name,
-      coordinates: doc.data.coordinates,
-      timezone: doc.data.timezone,
+      name: doc.name,
+      coordinates: doc.coordinates,
+      timezone: doc.timezone,
     };
   } catch (error: any) {
     if (error.status === 404) {
@@ -271,18 +266,16 @@ export async function addStep(deviceId: string, tripId: string, step: Omit<Step,
       device_id: deviceId,
       trip_id: tripId,
       step_id: stepId,
-      data: {
-        type: step.type,
-        startDate: step.startDate,
-        finishDate: step.finishDate,
-        startTimestamp: step.startTimestamp,
-        finishTimestamp: step.finishTimestamp,
-        startLocationId: step.startLocationId,
-        finishLocationId: step.finishLocationId,
-        startAirport: step.startAirport,
-        finishAirport: step.finishAirport,
-        description: step.description,
-      },
+      stepType: step.type,
+      startDate: step.startDate,
+      finishDate: step.finishDate,
+      startTimestamp: step.startTimestamp,
+      finishTimestamp: step.finishTimestamp,
+      startLocationId: step.startLocationId,
+      finishLocationId: step.finishLocationId,
+      startAirport: step.startAirport,
+      finishAirport: step.finishAirport,
+      description: step.description,
       created_at: timestamp,
       updated_at: timestamp,
     };
@@ -332,12 +325,11 @@ export async function updateStep(
     const documentId = createStepDocId(deviceId, tripId, stepId);
     const existingDoc = await db.get<StepDocument>(documentId);
 
+    const { type: stepType, ...updateData } = data;
     const updatedDocument: StepDocument = {
       ...existingDoc,
-      data: {
-        ...existingDoc.data,
-        ...data,
-      },
+      ...updateData,
+      stepType: stepType || existingDoc.stepType,
       updated_at: Date.now(),
     };
 
@@ -402,16 +394,16 @@ export async function getSteps(deviceId: string, tripId: string): Promise<Step[]
         const doc = row.doc!;
         return {
           id: doc.step_id,
-          type: doc.data.type,
-          startDate: doc.data.startDate,
-          finishDate: doc.data.finishDate,
-          startTimestamp: doc.data.startTimestamp,
-          finishTimestamp: doc.data.finishTimestamp,
-          startLocationId: doc.data.startLocationId,
-          finishLocationId: doc.data.finishLocationId,
-          startAirport: doc.data.startAirport,
-          finishAirport: doc.data.finishAirport,
-          description: doc.data.description,
+          type: doc.stepType,
+          startDate: doc.startDate,
+          finishDate: doc.finishDate,
+          startTimestamp: doc.startTimestamp,
+          finishTimestamp: doc.finishTimestamp,
+          startLocationId: doc.startLocationId,
+          finishLocationId: doc.finishLocationId,
+          startAirport: doc.startAirport,
+          finishAirport: doc.finishAirport,
+          description: doc.description,
         } as Step;
       });
   } catch (error: any) {
@@ -447,12 +439,10 @@ export async function createTrip(
       type: 'trip',
       device_id: deviceId,
       trip_id: tripId,
-      data: {
-        created_at: timestamp,
-        updated_at: timestamp,
-        title,
-        subtitle,
-      },
+      created_at: timestamp,
+      updated_at: timestamp,
+      title,
+      subtitle,
     };
 
     await db.put(tripDocument);
@@ -484,11 +474,8 @@ export async function updateTrip(
 
     const updatedDocument: TripDocument = {
       ...existingDoc,
-      data: {
-        ...existingDoc.data,
-        ...data,
-        updated_at: Date.now(),
-      },
+      ...data,
+      updated_at: Date.now(),
     };
 
     await db.put(updatedDocument);
@@ -518,11 +505,8 @@ export async function deleteTrip(deviceId: string, tripId: string): Promise<bool
 
     const updatedDocument: TripDocument = {
       ...existingDoc,
-      data: {
-        ...existingDoc.data,
-        deleted_at: Date.now(),
-        updated_at: Date.now(),
-      },
+      deleted_at: Date.now(),
+      updated_at: Date.now(),
     };
 
     await db.put(updatedDocument);
@@ -555,11 +539,17 @@ export async function getTrip(deviceId: string, tripId: string): Promise<Trip | 
     }
 
     // Don't return deleted trips unless specifically requested
-    if (doc.data.deleted_at) {
+    if (doc.deleted_at) {
       return null;
     }
 
-    return doc.data;
+    return {
+      created_at: doc.created_at,
+      updated_at: doc.updated_at,
+      deleted_at: doc.deleted_at,
+      title: doc.title,
+      subtitle: doc.subtitle,
+    };
   } catch (error: any) {
     if (error.status === 404) {
       return null;
@@ -606,7 +596,7 @@ export async function loadTripData(deviceId: string, tripId: string): Promise<{
  * @param locations - Map of available locations
  * @returns Steps with resolved location references (for compatibility only - steps still store UUIDs)
  */
-export function resolveLocationReferences(steps: Step[], locations: Record<string, Location>): Step[] {
+export function resolveLocationReferences(steps: Step[], _locations: Record<string, Location>): Step[] {
   // Note: This function is for future compatibility if we need to embed location objects
   // Currently steps store location UUIDs and resolve them in the UI layer
   return steps;

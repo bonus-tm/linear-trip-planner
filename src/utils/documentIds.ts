@@ -89,9 +89,9 @@ export function getLocationIdFromReference(locationDocId: string): string | null
  * @returns Array of location document IDs
  */
 export function getStepLocationDocIds(stepDocument: any): string[] {
-  const locationIds = [stepDocument.data.startLocationId];
-  if (stepDocument.data.finishLocationId) {
-    locationIds.push(stepDocument.data.finishLocationId);
+  const locationIds = [stepDocument.startLocationId];
+  if (stepDocument.finishLocationId) {
+    locationIds.push(stepDocument.finishLocationId);
   }
   return locationIds.map(locId => buildLocationDocIdFromStep(stepDocument, locId));
 }
