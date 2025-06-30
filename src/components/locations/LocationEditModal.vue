@@ -209,10 +209,10 @@ const handleCancel = () => {
           id="timezone"
           v-model="editForm.timezone"
           :options="timezoneOptions"
+          :tabindex="2"
           class="timezone-select"
           optionLabel="label"
           optionValue="value"
-          tabindex="2"
         />
       </div>
 

@@ -84,8 +84,9 @@ const {layout, dayWidth, isFitZoom, isMaxZoom, isMinZoom, zoomIn, zoomOut, zoomT
 }
 
 .timeline-container {
-  background-color: var(--color-surface);
   position: relative;
+  background-color: var(--color-surface);
+  border-bottom: thin solid var(--color-border);
 
   .zoom-controls {
     position: absolute;

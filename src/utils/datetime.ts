@@ -1,3 +1,5 @@
+export const DAY_24_HRS = 24 * 60 * 60 * 1000;
+
 /**
  * Convert timezone shift to parseable string, e.g.:
  * 0 → 'Z'

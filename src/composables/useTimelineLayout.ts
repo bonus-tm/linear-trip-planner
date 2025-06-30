@@ -11,7 +11,7 @@ import type {
   TimelineLocation,
   ZoomLevel,
 } from '../types';
-import {formatDurationTime, getDatesBetween, getDayBeginTimestamp, isWeekendDay} from '../utils/datetime';
+import {DAY_24_HRS, formatDurationTime, getDatesBetween, getDayBeginTimestamp, isWeekendDay} from '../utils/datetime';
 import {convertPositionToStyle} from '../utils/style';
 import {calculateDaylight} from '../utils/daylight';
 
@@ -19,7 +19,6 @@ import {calculateDaylight} from '../utils/daylight';
 const LAYOUT_PADDING_Y = 30;
 const LOCATION_HEIGHT = 20;
 const LOCATIONS_GAP = 50;
-const DAY_24_HRS = 24 * 60 * 60 * 1000;
 const MOVE_TIME_LABEL_MARGIN = 2;
 
 const widthsOfDay = [20, 30, 40, 60, 90, 120, 180, 240];
