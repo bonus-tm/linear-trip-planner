@@ -1,38 +1,43 @@
-<script setup lang="ts">
-import {ref, computed} from 'vue';
+<script lang="ts" setup>
+import {computed, ref} from 'vue';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
+import {useAppState} from '../../composables/useAppState';
 import LocationEditModal from './LocationEditModal.vue';
-import {useAppState} from '../../composables/useAppState.ts';
 
 const selectedLocationId = defineModel<string>();
 defineProps<{
-  placeholder?: string
+  placeholder?: string;
+  tabindex?: number | string;
 }>();
 
 const {locationsList, addLocation, isLoading} = useAppState();
 
 // Convert locations to options for the select
-const locationOptions = computed(() => 
+const locationOptions = computed(() =>
   locationsList.value.map(location => ({
     label: location.name,
-    value: location.id
-  }))
+    value: location.id,
+  })),
 );
 
 // Location add modal state
 const showLocationModal = ref(false);
 
 // Handle new location creation
-const handleLocationCreated = async (locationData: { name: string; timezone: number; coordinates?: { lat: number; lng: number } }) => {
+const handleLocationCreated = async (locationData: {
+  name: string;
+  timezone: number;
+  coordinates?: { lat: number; lng: number }
+}) => {
   const newLocation = {
     name: locationData.name,
     coordinates: locationData.coordinates || {lat: 0, lng: 0},
     timezone: locationData.timezone,
   };
-  
+
   const success = await addLocation(newLocation);
-  
+
   if (success) {
     // Find the newly created location and select it
     const createdLocation = locationsList.value.find(loc => loc.name === locationData.name);
@@ -47,22 +52,23 @@ const handleLocationCreated = async (locationData: { name: string; timezone: num
 <template>
   <Select
     v-model="selectedLocationId"
+    :disabled="isLoading"
     :invalid="!selectedLocationId"
     :options="locationOptions"
+    :placeholder="placeholder || 'Select location'"
+    :tabindex="Number(tabindex)"
     optionLabel="label"
     optionValue="value"
-    :placeholder="placeholder || 'Select location'"
-    :disabled="isLoading"
   >
     <template #footer>
       <Button
-        label="Create new location"
-        fluid
-        severity="secondary"
-        text
-        size="small"
-        icon="pi pi-plus"
         :loading="isLoading"
+        fluid
+        icon="pi pi-plus"
+        label="Create new location"
+        severity="secondary"
+        size="small"
+        text
         @click="showLocationModal = true"
       />
     </template>
@@ -72,8 +78,8 @@ const handleLocationCreated = async (locationData: { name: string; timezone: num
   <teleport to="body">
     <LocationEditModal
       v-model:visible="showLocationModal"
-      :location="null"
       :is-creating="true"
+      :location="null"
       @save="handleLocationCreated"
     />
   </teleport>

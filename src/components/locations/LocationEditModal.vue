@@ -1,10 +1,11 @@
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
+import {ref, watch} from 'vue';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Select from 'primevue/select';
 import Button from 'primevue/button';
-import type { Location } from '../../types';
+import Message from 'primevue/message';
+import type {Location} from '../../types';
 
 interface Props {
   visible: boolean;
@@ -14,8 +15,14 @@ interface Props {
 
 interface Emits {
   (e: 'update:visible', value: boolean): void;
-  (e: 'save', location: Location | { name: string; timezone: number; coordinates?: { lat: number; lng: number } }): void;
+
+  (
+    e: 'save',
+    location: Location | { name: string; timezone: number; coordinates?: { lat: number; lng: number } },
+  ): void;
+
   (e: 'delete', locationId: string): void;
+
   (e: 'close'): void;
 }
 
@@ -69,7 +76,7 @@ watch(localVisible, (newValue) => {
 
 const validateAndSave = () => {
   error.value = null;
-  
+
   if (!editForm.value.name.trim()) {
     error.value = 'Location name cannot be empty';
     return;
@@ -107,13 +114,13 @@ const validateAndSave = () => {
       emit('save', {
         name: editForm.value.name.trim(),
         timezone: editForm.value.timezone,
-        coordinates: { lat, lng }
+        coordinates: {lat, lng},
       });
     } else {
       // No coordinates provided for new location
       emit('save', {
         name: editForm.value.name.trim(),
-        timezone: editForm.value.timezone
+        timezone: editForm.value.timezone,
       });
     }
   } else {
@@ -152,13 +159,13 @@ const validateAndSave = () => {
     const updatedLocation: Location = {
       id: props.location!.id, // Keep the original ID
       name: editForm.value.name.trim(),
-      coordinates: { lat, lng },
+      coordinates: {lat, lng},
       timezone: editForm.value.timezone,
     };
 
     emit('save', updatedLocation);
   }
-  
+
   localVisible.value = false;
 };
 
@@ -179,9 +186,9 @@ const handleCancel = () => {
 <template>
   <Dialog
     v-model:visible="localVisible"
+    :header="isCreating ? 'New Location' : 'Edit Location'"
     :modal="true"
     :style="{ width: '450px' }"
-    :header="isCreating ? 'New Location' : 'Edit Location'"
   >
     <div class="edit-form">
       <div class="form-field">
@@ -191,6 +198,7 @@ const handleCancel = () => {
           v-model="editForm.name"
           :autofocus="isCreating"
           placeholder="Enter location name"
+          tabindex="1"
           @keyup.enter="validateAndSave"
         />
       </div>
@@ -201,15 +209,17 @@ const handleCancel = () => {
           id="timezone"
           v-model="editForm.timezone"
           :options="timezoneOptions"
+          class="timezone-select"
           optionLabel="label"
           optionValue="value"
-          class="timezone-select"
+          tabindex="2"
         />
       </div>
 
       <div class="form-field">
         <label for="coordinates">
-          Coordinates{{ isCreating ? ' (optional)' : ' *' }}
+          Coordinates
+          {{ isCreating ? '(optional)' : '*' }}
           <a
             v-if="!isCreating && location"
             :href="`https://www.google.com/maps/@${location.coordinates.lat},${location.coordinates.lng},11z`"
@@ -221,10 +231,21 @@ const handleCancel = () => {
             Show on map
           </a>
         </label>
+        <Message
+          class="hint-above-input"
+          severity="secondary"
+          size="small"
+          variant="simple"
+        >
+          used for approx daylight calculation
+        </Message>
         <InputText
           id="coordinates"
           v-model="editForm.coordinatesString"
+          :autofocus="!isCreating"
           placeholder="lat, lng (e.g., 51.970710, 5.003546)"
+          tabindex="3"
+          @keyup.enter="validateAndSave"
         />
       </div>
 
@@ -241,6 +262,7 @@ const handleCancel = () => {
             icon="pi pi-trash"
             label="Delete"
             severity="danger"
+            tabindex="6"
             text
             @click="handleDelete"
           />
@@ -248,12 +270,14 @@ const handleCancel = () => {
         <div class="right-actions">
           <Button
             label="Cancel"
+            tabindex="5"
             text
             @click="handleCancel"
           />
           <Button
             :disabled="!editForm.name.trim()"
             :label="isCreating ? 'Create' : 'Save'"
+            tabindex="4"
             @click="validateAndSave"
           />
         </div>
@@ -263,24 +287,6 @@ const handleCancel = () => {
 </template>
 
 <style scoped>
-.edit-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.form-field label {
-  font-weight: 600;
-  color: var(--color-text);
-  transition: color 0.3s ease;
-}
-
 .map-link {
   text-decoration: none;
   padding: 0.25em 0.5em;
@@ -311,10 +317,7 @@ const handleCancel = () => {
 }
 
 .modal-footer {
-  display: flex;
   justify-content: space-between;
-  align-items: center;
-  width: 100%;
 }
 
 .left-actions,

@@ -92,9 +92,9 @@ const handleCancel = () => {
 <template>
   <Dialog
     v-model:visible="dialogVisible"
+    :header="isCreating ? 'Add Stay' : 'Edit Stay'"
     :modal="true"
     :style="{ width: '500px' }"
-    :header="isCreating ? 'Add Stay' : 'Edit Stay'"
   >
     <div class="edit-form">
       <div class="form-row">
@@ -104,6 +104,8 @@ const handleCancel = () => {
             v-model="formData.startDate"
             :invalid="!formData.startDate"
             type="datetime-local"
+            autofocus
+            tabindex="1"
           />
         </div>
         <div class="form-field">
@@ -113,6 +115,7 @@ const handleCancel = () => {
             :invalid="!formData.finishDate"
             :min="formData.startDate"
             type="datetime-local"
+            tabindex="2"
           />
         </div>
       </div>
@@ -120,7 +123,7 @@ const handleCancel = () => {
       <div class="form-row">
         <div class="form-field">
           <label>Location *</label>
-          <LocationSelect v-model="formData.startLocationId"/>
+          <LocationSelect v-model="formData.startLocationId" tabindex="3"/>
         </div>
       </div>
 
@@ -131,6 +134,7 @@ const handleCancel = () => {
             v-model="formData.description"
             placeholder="Optional description"
             rows="3"
+            tabindex="4"
           />
         </div>
       </div>
@@ -146,18 +150,21 @@ const handleCancel = () => {
           v-if="!isCreating"
           label="Delete"
           severity="danger"
+          tabindex="7"
           text
           @click="confirmDelete"
         />
         <div class="footer-actions">
           <Button
             label="Cancel"
+            tabindex="6"
             text
             @click="handleCancel"
           />
           <Button
             :label="isCreating ? 'Add' : 'Save'"
             severity="success"
+            tabindex="5"
             @click="validateAndSave"
           />
         </div>
@@ -167,34 +174,13 @@ const handleCancel = () => {
 </template>
 
 <style scoped>
-.edit-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
 .form-row {
   display: flex;
   gap: 1rem;
-}
 
-.form-field {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.form-field label {
-  font-weight: 600;
-  color: var(--color-text);
-  font-size: 0.875rem;
-}
-
-.modal-footer {
-  display: flex;
-  align-items: center;
-  width: 100%;
+  .form-field {
+    flex: 1;
+  }
 }
 
 .footer-actions {

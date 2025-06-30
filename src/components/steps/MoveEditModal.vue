@@ -101,9 +101,9 @@ const handleCancel = () => {
 <template>
   <Dialog
     v-model:visible="dialogVisible"
+    :header="isCreating ? 'Add Move' : 'Edit Move'"
     :modal="true"
     :style="{ width: '600px' }"
-    :header="isCreating ? 'Add Move' : 'Edit Move'"
   >
     <div class="edit-form">
       <div class="form-row">
@@ -113,6 +113,8 @@ const handleCancel = () => {
             v-model="formData.startDate"
             :invalid="!formData.startDate"
             :step="60"
+            autofocus
+            tabindex="1"
             type="datetime-local"
           />
         </div>
@@ -122,6 +124,7 @@ const handleCancel = () => {
             v-model="formData.finishDate"
             :invalid="!formData.finishDate"
             :step="60"
+            tabindex="2"
             type="datetime-local"
           />
         </div>
@@ -133,6 +136,7 @@ const handleCancel = () => {
           <LocationSelect
             v-model="formData.startLocationId"
             placeholder="Select departure location"
+            tabindex="3"
           />
         </div>
         <div class="form-field">
@@ -140,6 +144,7 @@ const handleCancel = () => {
           <LocationSelect
             v-model="formData.finishLocationId"
             placeholder="Select arrival location"
+            tabindex="4"
           />
         </div>
       </div>
@@ -152,6 +157,7 @@ const handleCancel = () => {
             :maxlength="3"
             placeholder="XXX"
             style="text-transform: uppercase"
+            tabindex="5"
           />
         </div>
         <div class="form-field">
@@ -161,6 +167,7 @@ const handleCancel = () => {
             :maxlength="3"
             placeholder="XXX"
             style="text-transform: uppercase"
+            tabindex="6"
           />
         </div>
       </div>
@@ -172,6 +179,7 @@ const handleCancel = () => {
             v-model="formData.description"
             placeholder="Description"
             rows="3"
+            tabindex="7"
           />
         </div>
       </div>
@@ -187,18 +195,21 @@ const handleCancel = () => {
           v-if="!isCreating"
           label="Delete"
           severity="danger"
+          tabindex="12"
           text
           @click="confirmDelete"
         />
         <div class="footer-actions">
           <Button
             label="Cancel"
+            tabindex="11"
             text
             @click="handleCancel"
           />
           <Button
             :label="isCreating ? 'Add' : 'Save'"
             severity="success"
+            tabindex="10"
             @click="validateAndSave"
           />
         </div>
@@ -208,34 +219,13 @@ const handleCancel = () => {
 </template>
 
 <style scoped>
-.edit-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
 .form-row {
   display: flex;
   gap: 1rem;
-}
 
-.form-field {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.form-field label {
-  font-weight: 600;
-  color: var(--color-text);
-  font-size: 0.875rem;
-}
-
-.modal-footer {
-  display: flex;
-  align-items: center;
-  width: 100%;
+  .form-field {
+    flex: 1;
+  }
 }
 
 .footer-actions {
