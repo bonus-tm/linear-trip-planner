@@ -36,31 +36,40 @@ const addNewStep = (type: StepType) => {
     newLocationId = locationsList.value[0]?.id || '';
   }
 
+  const userTimezone = Math.round(new Date().getTimezoneOffset() / -60);
+  const locationTimezone = locations.value[newLocationId]?.timezone || userTimezone;
+
   // Get the current time in the new step's location timezone
-  let defaultDateTime: string;
-  let defaultTimestamp: number;
+  let defaultStartDate: string;
   if (lastStep) {
     // Use the last step's finish date/time as starting point
-    defaultDateTime = lastStep.finishDate;
-    defaultTimestamp = lastStep.finishTimestamp;
+    defaultStartDate = lastStep.finishDate;
   } else {
-    // Create new datetime in the target location's timezone
-    const locationTimezone = locations.value[newLocationId]?.timezone || 0;
-    defaultTimestamp = Date.now();
-    defaultDateTime = formatISOWithTZ(defaultTimestamp, locationTimezone);
+    defaultStartDate = formatISOWithTZ(Date.now(), locationTimezone);
   }
+
+  let defaultFinishDate: string;
+  const d = new Date(defaultStartDate);
+  if (type === 'move') {
+    // for move add 1 hour
+    d.setHours(d.getHours() + 1);
+  } else {
+    // for stay add 1 day
+    d.setDate(d.getDate() + 1);
+  }
+  defaultFinishDate = formatISOWithTZ(d.getTime(), locationTimezone);
 
   // Create a draft step without adding it to the list
   const draftStep: Step = {
     id: '', // Temporary ID, will be generated when saved
     type,
-    startDate: defaultDateTime,
-    finishDate: defaultDateTime,
-    startTimestamp: defaultTimestamp,
-    finishTimestamp: defaultTimestamp,
+    startDate: defaultStartDate,
+    finishDate: defaultFinishDate,
+    startTimestamp: 0,
+    finishTimestamp: 0,
     startLocationId: newLocationId,
     description: '',
-    ...(type === 'move' && { finishLocationId: newLocationId }),
+    ...(type === 'move' && {finishLocationId: newLocationId}),
   };
 
   // Set up modal for creating new step

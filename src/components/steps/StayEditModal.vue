@@ -36,7 +36,12 @@ const localError = ref<string | null>(null);
 // Watch for step changes to populate form
 watch(() => props.step, (newStep) => {
   if (newStep) {
-    formData.value = {...newStep};
+    formData.value = {
+      ...newStep,
+      // Convert datetime strings to date-only strings for HTML date inputs
+      startDate: newStep.startDate ? newStep.startDate.split('T')[0] : '',
+      finishDate: newStep.finishDate ? newStep.finishDate.split('T')[0] : '',
+    };
   } else {
     formData.value = {};
   }
@@ -55,6 +60,9 @@ const validateAndSave = () => {
     return;
   }
 
+  formData.value.startDate += 'T23:59:59';
+  formData.value.finishDate += 'T00:00:01';
+
   // Validation - need to consider timezones for proper date comparison
   const startTimezone = locations.value[formData.value.startLocationId]?.timezone || 0;
   const finishTimezone = startTimezone; // Stay steps use same location
@@ -67,7 +75,7 @@ const validateAndSave = () => {
     return;
   }
 
-  // Update timestamps
+  // Update timestamps and full datetime strings
   formData.value.startTimestamp = startTimestamp;
   formData.value.finishTimestamp = finishTimestamp;
 
@@ -99,23 +107,23 @@ const handleCancel = () => {
     <div class="edit-form">
       <div class="form-row">
         <div class="form-field">
-          <label>Check-in Date/Time *</label>
+          <label>Check-in Date *</label>
           <InputText
             v-model="formData.startDate"
             :invalid="!formData.startDate"
-            type="datetime-local"
             autofocus
             tabindex="1"
+            type="date"
           />
         </div>
         <div class="form-field">
-          <label>Check-out Date/Time *</label>
+          <label>Check-out Date *</label>
           <InputText
             v-model="formData.finishDate"
             :invalid="!formData.finishDate"
             :min="formData.startDate"
-            type="datetime-local"
             tabindex="2"
+            type="date"
           />
         </div>
       </div>
