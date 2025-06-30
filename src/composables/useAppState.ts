@@ -1,4 +1,4 @@
-import {computed, onMounted, ref} from 'vue';
+import {computed, ref} from 'vue';
 import type {Location, LocationsMap, Step, StepsList, Trip} from '../types';
 import {generateTripId, getOrCreateDeviceId, getOrCreateTripId} from '../utils/ids';
 import {
@@ -20,21 +20,21 @@ import {
 
 const error = ref<string | null>(null);
 
+// Reactive state for PouchDB data
+const locations = ref<LocationsMap>({});
+const steps = ref<StepsList>([]);
+const currentTrip = ref<Trip | null>(null);
+
+// Trip and device ID management (for session use)
+const currentTripId = ref<string | null>(null);
+const deviceId = ref<string>(getOrCreateDeviceId());
+
+// Loading states
+const isLoading = ref(false);
+
 export function useAppState() {
-  // Reactive state for PouchDB data
-  const locations = ref<LocationsMap>({});
-  const steps = ref<StepsList>([]);
-  const currentTrip = ref<Trip | null>(null);
-
-  // Trip and device ID management (for session use)
-  const currentTripId = ref<string | null>(null);
-  const deviceId = ref<string>(getOrCreateDeviceId());
-
-  // Loading states
-  const isLoading = ref(false);
-
   // Initialize database and load data
-  onMounted(async () => {
+  const initState = async () => {
     try {
       await initializeDatabase();
 
@@ -48,7 +48,7 @@ export function useAppState() {
       console.error('Failed to initialize database:', err);
       error.value = 'Failed to initialize database';
     }
-  });
+  };
 
   // Load locations from PouchDB
   const loadLocations = async (): Promise<void> => {
@@ -420,6 +420,8 @@ export function useAppState() {
   );
 
   return {
+    initState,
+
     // State
     locations,
     steps,

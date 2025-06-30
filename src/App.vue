@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {ref, watch} from 'vue';
+import {onMounted, ref, watch} from 'vue';
 import Toast from 'primevue/toast';
 import {useToast} from 'primevue/usetoast';
 import {useAppState} from './composables/useAppState';
@@ -10,8 +10,10 @@ import Timeline from './components/timeline/Timeline.vue';
 import ResetButton from './components/ResetButton.vue';
 import LinkToGithub from './components/LinkToGithub.vue';
 
-const {error} = useAppState();
+const {error, initState} = useAppState();
 const toast = useToast();
+
+onMounted(initState);
 
 watch(error, (msg: string | null) => {
   if (msg) {
