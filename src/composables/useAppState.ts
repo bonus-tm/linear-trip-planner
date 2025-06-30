@@ -1,23 +1,21 @@
-import {computed, ref, onMounted} from 'vue';
-import {useLocalStorage} from '@vueuse/core';
-import type {Location, LocationsMap, StepsList, Step, Trip} from '../types';
-import {generateTripId, getOrCreateDeviceId, generateLocationId, generateStepId} from '../utils/ids';
+import {computed, onMounted, ref} from 'vue';
+import type {Location, LocationsMap, Step, StepsList, Trip} from '../types';
+import {generateTripId, getOrCreateDeviceId, getOrCreateTripId} from '../utils/ids';
 import {
   addLocation as dbAddLocation,
-  updateLocation as dbUpdateLocation,
-  deleteLocation as dbDeleteLocation,
-  getLocations as dbGetLocations,
   addStep as dbAddStep,
-  updateStep as dbUpdateStep,
-  deleteStep as dbDeleteStep,
-  getSteps as dbGetSteps,
   createTrip as dbCreateTrip,
-  updateTrip as dbUpdateTrip,
+  deleteLocation as dbDeleteLocation,
+  deleteStep as dbDeleteStep,
   deleteTrip as dbDeleteTrip,
-  getTrip as dbGetTrip,
+  getLocations as dbGetLocations,
+  getSteps as dbGetSteps,
+  initializeDatabase,
   loadTripData as dbLoadTripData,
+  updateLocation as dbUpdateLocation,
+  updateStep as dbUpdateStep,
+  updateTrip as dbUpdateTrip,
   validateStepLocationReferences,
-  initializeDatabase
 } from '../utils/database';
 
 const error = ref<string | null>(null);
@@ -39,11 +37,13 @@ export function useAppState() {
   onMounted(async () => {
     try {
       await initializeDatabase();
-      
+
       // Load data if we have a current trip
-      if (currentTripId.value) {
-        await loadTripData();
+      if (!currentTripId.value) {
+        currentTripId.value = getOrCreateTripId();
       }
+      await loadTripData();
+
     } catch (err) {
       console.error('Failed to initialize database:', err);
       error.value = 'Failed to initialize database';
@@ -60,13 +60,13 @@ export function useAppState() {
     try {
       isLoading.value = true;
       const loadedLocations = await dbGetLocations(deviceId.value, currentTripId.value);
-      
+
       // Convert array to map for app compatibility
       const locationsMap: LocationsMap = {};
       loadedLocations.forEach(location => {
         locationsMap[location.id] = location;
       });
-      
+
       locations.value = locationsMap;
       error.value = null;
     } catch (err) {
@@ -109,13 +109,13 @@ export function useAppState() {
     try {
       isLoading.value = true;
       const data = await dbLoadTripData(deviceId.value, currentTripId.value);
-      
+
       // Convert locations array to map for app compatibility
       const locationsMap: LocationsMap = {};
       data.locations.forEach(location => {
         locationsMap[location.id] = location;
       });
-      
+
       locations.value = locationsMap;
       steps.value = data.steps;
       currentTrip.value = data.trip;
@@ -145,7 +145,7 @@ export function useAppState() {
     try {
       isLoading.value = true;
       const location = await dbAddLocation(deviceId.value, currentTripId.value, locationData);
-      
+
       // Update reactive state
       locations.value[location.id] = location;
       error.value = null;
@@ -173,11 +173,11 @@ export function useAppState() {
     try {
       isLoading.value = true;
       await dbUpdateLocation(deviceId.value, currentTripId.value, locationId, updatedLocation);
-      
+
       // Update reactive state
       locations.value[locationId] = {
         id: locationId,
-        ...updatedLocation
+        ...updatedLocation,
       };
       error.value = null;
       return true;
@@ -209,7 +209,7 @@ export function useAppState() {
     try {
       isLoading.value = true;
       await dbDeleteLocation(deviceId.value, currentTripId.value, locationId);
-      
+
       // Update reactive state
       delete locations.value[locationId];
       error.value = null;
@@ -232,16 +232,16 @@ export function useAppState() {
 
     try {
       isLoading.value = true;
-      
+
       // Validate location references exist
       const isValid = await validateStepLocationReferences(deviceId.value, currentTripId.value, step as Step);
       if (!isValid) {
         error.value = 'Referenced locations do not exist';
         return false;
       }
-      
+
       const createdStep = await dbAddStep(deviceId.value, currentTripId.value, step);
-      
+
       // Update reactive state
       steps.value.push(createdStep);
       error.value = null;
@@ -272,7 +272,7 @@ export function useAppState() {
 
       // If location references are being updated, validate them
       if (updatedStep.startLocationId || updatedStep.finishLocationId) {
-        const fullUpdatedStep = { ...steps.value[index], ...updatedStep } as Step;
+        const fullUpdatedStep = {...steps.value[index], ...updatedStep} as Step;
         const isValid = await validateStepLocationReferences(deviceId.value, currentTripId.value, fullUpdatedStep);
         if (!isValid) {
           error.value = 'Referenced locations do not exist';
@@ -281,7 +281,7 @@ export function useAppState() {
       }
 
       await dbUpdateStep(deviceId.value, currentTripId.value, stepId, updatedStep);
-      
+
       // Update reactive state
       steps.value[index] = {
         ...steps.value[index],
@@ -307,7 +307,7 @@ export function useAppState() {
     try {
       isLoading.value = true;
       await dbDeleteStep(deviceId.value, currentTripId.value, stepId);
-      
+
       // Update reactive state
       steps.value = steps.value.filter(s => s.id !== stepId);
       error.value = null;
@@ -326,20 +326,20 @@ export function useAppState() {
     try {
       isLoading.value = true;
       const newTripId = generateTripId();
-      
+
       // Create the trip document in PouchDB
       await dbCreateTrip(deviceId.value, newTripId, title, subtitle);
-      
+
       // Update app state
       currentTripId.value = newTripId;
-      
+
       // Clear current locations and steps for new trip
       locations.value = {};
       steps.value = [];
-      
+
       // Load the new trip data (should be empty except for trip info)
       await loadTripData();
-      
+
       error.value = null;
       return newTripId;
     } catch (err) {
@@ -360,16 +360,16 @@ export function useAppState() {
     try {
       isLoading.value = true;
       await dbUpdateTrip(deviceId.value, currentTripId.value, data);
-      
+
       // Update reactive state
       if (currentTrip.value) {
         currentTrip.value = {
           ...currentTrip.value,
           ...data,
-          updated_at: Date.now()
+          updated_at: Date.now(),
         };
       }
-      
+
       error.value = null;
       return true;
     } catch (err) {
@@ -390,16 +390,16 @@ export function useAppState() {
     try {
       isLoading.value = true;
       await dbDeleteTrip(deviceId.value, currentTripId.value);
-      
+
       // Update reactive state
       if (currentTrip.value) {
         currentTrip.value = {
           ...currentTrip.value,
           deleted_at: Date.now(),
-          updated_at: Date.now()
+          updated_at: Date.now(),
         };
       }
-      
+
       error.value = null;
       return true;
     } catch (err) {

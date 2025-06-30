@@ -1,7 +1,8 @@
 // ID Generation Utilities for PouchDB Migration
 // Implements Phase 2: ID Generation and Device Management
 
-const DEVICE_ID_STORAGE_KEY = 'tavel-timeline-device-id';
+const DEVICE_ID_STORAGE_KEY = 'travel-timeline-device-id';
+const TRIP_ID_STORAGE_KEY = 'travel-timeline-trip-id';
 
 /**
  * Generate unique device ID using crypto.randomUUID()
@@ -13,7 +14,7 @@ function generateDeviceId(): string {
 
 /**
  * Get existing device ID from localStorage or generate new one
- * Storage key: "tavel-timeline-device-id"
+ * Storage key: "travel-timeline-trip-id"
  * @returns Device ID string (UUID format)
  */
 export function getOrCreateDeviceId(): string {
@@ -26,6 +27,23 @@ export function getOrCreateDeviceId(): string {
   }
   
   return deviceId;
+}
+
+/**
+ * Get existing trip ID from localStorage or generate new one
+ * Storage key: "travel-timeline-trip-id"
+ * @returns Trip ID string (UUID format)
+ */
+export function getOrCreateTripId(): string {
+  let tripId = localStorage.getItem(TRIP_ID_STORAGE_KEY);
+
+  if (!tripId) {
+    tripId = generateDeviceId();
+    localStorage.setItem(TRIP_ID_STORAGE_KEY, tripId);
+    console.log('Generated new trip ID:', tripId);
+  }
+
+  return tripId;
 }
 
 /**

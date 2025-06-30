@@ -1,7 +1,8 @@
 import PouchDB from 'pouchdb';
-import type { Location, LocationDocument, DatabaseDocument, Step, StepDocument, Trip, TripDocument } from '../types';
-import { createLocationDocId, createStepDocId, createTripDocId, parseDocumentId } from './documentIds';
-import { generateLocationId, generateStepId } from './ids';
+import PouchDBFind from 'pouchdb-find';
+import type {Location, LocationDocument, Step, StepDocument, Trip, TripDocument} from '../types';
+import {createLocationDocId, createStepDocId, createTripDocId} from './documentIds';
+import {generateLocationId, generateStepId} from './ids';
 
 // Database configuration
 export const DB_NAME = 'timeline-data';
@@ -11,9 +12,10 @@ let dbInstance: PouchDB.Database | null = null;
 
 export function getDatabase(): PouchDB.Database {
   if (!dbInstance) {
+    PouchDB.plugin(PouchDBFind);
     dbInstance = new PouchDB(DB_NAME, {
       auto_compaction: true,
-      revs_limit: 10
+      revs_limit: 10,
     });
   }
   return dbInstance;
@@ -23,13 +25,13 @@ export function getDatabase(): PouchDB.Database {
 export async function initializeDatabase(): Promise<boolean> {
   try {
     const db = getDatabase();
-    
+
     // Test database connectivity
     await db.info();
-    
+
     // Configure database indexes for efficient querying
     await setupIndexes();
-    
+
     console.log('Database initialized successfully');
     return true;
   } catch (error) {
@@ -42,22 +44,22 @@ export async function initializeDatabase(): Promise<boolean> {
 // Set up database indexes for efficient querying
 async function setupIndexes(): Promise<void> {
   const db = getDatabase();
-  
+
   try {
     // Create index for type + device_id + trip_id + created_at (from SPECS.md)
     await db.createIndex({
       index: {
-        fields: ['type', 'device_id', 'trip_id', 'created_at']
-      }
+        fields: ['type', 'device_id', 'trip_id', 'created_at'],
+      },
     });
-    
+
     // Create index for document type filtering
     await db.createIndex({
       index: {
-        fields: ['type']
-      }
+        fields: ['type'],
+      },
     });
-    
+
     console.log('Database indexes created successfully');
   } catch (error) {
     console.error('Failed to create database indexes:', error);
@@ -70,17 +72,17 @@ async function setupIndexes(): Promise<void> {
 /**
  * Add a new location to PouchDB
  * @param deviceId - Device UUID
- * @param tripId - Trip UUID 
+ * @param tripId - Trip UUID
  * @param location - Location data without ID
  * @returns Promise<Location> - Created location with generated ID
  */
 export async function addLocation(deviceId: string, tripId: string, location: Omit<Location, 'id'>): Promise<Location> {
   const db = getDatabase();
-  
+
   try {
     const locationId = generateLocationId();
     const timestamp = Date.now();
-    
+
     const locationDocument: LocationDocument = {
       _id: createLocationDocId(deviceId, tripId, locationId),
       type: 'location',
@@ -90,22 +92,22 @@ export async function addLocation(deviceId: string, tripId: string, location: Om
       data: {
         name: location.name,
         coordinates: location.coordinates,
-        timezone: location.timezone
+        timezone: location.timezone,
       },
       created_at: timestamp,
-      updated_at: timestamp
+      updated_at: timestamp,
     };
-    
+
     await db.put(locationDocument);
-    
+
     // Return the location in the format expected by the app
     const createdLocation: Location = {
       id: locationId,
       name: location.name,
       coordinates: location.coordinates,
-      timezone: location.timezone
+      timezone: location.timezone,
     };
-    
+
     return createdLocation;
   } catch (error: any) {
     console.error('Error adding location:', error);
@@ -122,22 +124,27 @@ export async function addLocation(deviceId: string, tripId: string, location: Om
  * @param data - Partial location data to update
  * @returns Promise<boolean> - Success status
  */
-export async function updateLocation(deviceId: string, tripId: string, locationId: string, data: Partial<Omit<Location, 'id'>>): Promise<boolean> {
+export async function updateLocation(
+  deviceId: string,
+  tripId: string,
+  locationId: string,
+  data: Partial<Omit<Location, 'id'>>,
+): Promise<boolean> {
   const db = getDatabase();
-  
+
   try {
     const documentId = createLocationDocId(deviceId, tripId, locationId);
     const existingDoc = await db.get<LocationDocument>(documentId);
-    
+
     const updatedDocument: LocationDocument = {
       ...existingDoc,
       data: {
         ...existingDoc.data,
-        ...data
+        ...data,
       },
-      updated_at: Date.now()
+      updated_at: Date.now(),
     };
-    
+
     await db.put(updatedDocument);
     return true;
   } catch (error: any) {
@@ -159,11 +166,11 @@ export async function updateLocation(deviceId: string, tripId: string, locationI
  */
 export async function deleteLocation(deviceId: string, tripId: string, locationId: string): Promise<boolean> {
   const db = getDatabase();
-  
+
   try {
     const documentId = createLocationDocId(deviceId, tripId, locationId);
     const existingDoc = await db.get<LocationDocument>(documentId);
-    
+
     await db.remove(existingDoc);
     return true;
   } catch (error: any) {
@@ -184,15 +191,15 @@ export async function deleteLocation(deviceId: string, tripId: string, locationI
  */
 export async function getLocations(deviceId: string, tripId: string): Promise<Location[]> {
   const db = getDatabase();
-  
+
   try {
     // Query all location documents for this device + trip
     const result = await db.allDocs<LocationDocument>({
       include_docs: true,
       startkey: `${deviceId}>${tripId}>location>`,
-      endkey: `${deviceId}>${tripId}>location>\ufff0`
+      endkey: `${deviceId}>${tripId}>location>\ufff0`,
     });
-    
+
     return result.rows
       .filter(row => row.doc && row.doc.type === 'location')
       .map(row => {
@@ -201,7 +208,7 @@ export async function getLocations(deviceId: string, tripId: string): Promise<Lo
           id: doc.location_id,
           name: doc.data.name,
           coordinates: doc.data.coordinates,
-          timezone: doc.data.timezone
+          timezone: doc.data.timezone,
         } as Location;
       });
   } catch (error: any) {
@@ -218,19 +225,19 @@ export async function getLocations(deviceId: string, tripId: string): Promise<Lo
  */
 export async function getLocationByDocumentId(locationDocId: string): Promise<Location | null> {
   const db = getDatabase();
-  
+
   try {
     const doc = await db.get<LocationDocument>(locationDocId);
-    
+
     if (doc.type !== 'location') {
       return null;
     }
-    
+
     return {
       id: doc.location_id,
       name: doc.data.name,
       coordinates: doc.data.coordinates,
-      timezone: doc.data.timezone
+      timezone: doc.data.timezone,
     };
   } catch (error: any) {
     if (error.status === 404) {
@@ -247,17 +254,17 @@ export async function getLocationByDocumentId(locationDocId: string): Promise<Lo
 /**
  * Add a new step to PouchDB
  * @param deviceId - Device UUID
- * @param tripId - Trip UUID 
+ * @param tripId - Trip UUID
  * @param step - Step data without ID
  * @returns Promise<Step> - Created step with generated ID
  */
 export async function addStep(deviceId: string, tripId: string, step: Omit<Step, 'id'>): Promise<Step> {
   const db = getDatabase();
-  
+
   try {
     const stepId = generateStepId();
     const timestamp = Date.now();
-    
+
     const stepDocument: StepDocument = {
       _id: createStepDocId(deviceId, tripId, stepId),
       type: 'step',
@@ -274,14 +281,14 @@ export async function addStep(deviceId: string, tripId: string, step: Omit<Step,
         finishLocationId: step.finishLocationId,
         startAirport: step.startAirport,
         finishAirport: step.finishAirport,
-        description: step.description
+        description: step.description,
       },
       created_at: timestamp,
-      updated_at: timestamp
+      updated_at: timestamp,
     };
-    
+
     await db.put(stepDocument);
-    
+
     // Return the step in the format expected by the app
     const createdStep: Step = {
       id: stepId,
@@ -294,9 +301,9 @@ export async function addStep(deviceId: string, tripId: string, step: Omit<Step,
       finishLocationId: step.finishLocationId,
       startAirport: step.startAirport,
       finishAirport: step.finishAirport,
-      description: step.description
+      description: step.description,
     };
-    
+
     return createdStep;
   } catch (error: any) {
     console.error('Error adding step:', error);
@@ -313,22 +320,27 @@ export async function addStep(deviceId: string, tripId: string, step: Omit<Step,
  * @param data - Partial step data to update
  * @returns Promise<boolean> - Success status
  */
-export async function updateStep(deviceId: string, tripId: string, stepId: string, data: Partial<Omit<Step, 'id'>>): Promise<boolean> {
+export async function updateStep(
+  deviceId: string,
+  tripId: string,
+  stepId: string,
+  data: Partial<Omit<Step, 'id'>>,
+): Promise<boolean> {
   const db = getDatabase();
-  
+
   try {
     const documentId = createStepDocId(deviceId, tripId, stepId);
     const existingDoc = await db.get<StepDocument>(documentId);
-    
+
     const updatedDocument: StepDocument = {
       ...existingDoc,
       data: {
         ...existingDoc.data,
-        ...data
+        ...data,
       },
-      updated_at: Date.now()
+      updated_at: Date.now(),
     };
-    
+
     await db.put(updatedDocument);
     return true;
   } catch (error: any) {
@@ -350,11 +362,11 @@ export async function updateStep(deviceId: string, tripId: string, stepId: strin
  */
 export async function deleteStep(deviceId: string, tripId: string, stepId: string): Promise<boolean> {
   const db = getDatabase();
-  
+
   try {
     const documentId = createStepDocId(deviceId, tripId, stepId);
     const existingDoc = await db.get<StepDocument>(documentId);
-    
+
     await db.remove(existingDoc);
     return true;
   } catch (error: any) {
@@ -375,15 +387,15 @@ export async function deleteStep(deviceId: string, tripId: string, stepId: strin
  */
 export async function getSteps(deviceId: string, tripId: string): Promise<Step[]> {
   const db = getDatabase();
-  
+
   try {
     // Query all step documents for this device + trip
     const result = await db.allDocs<StepDocument>({
       include_docs: true,
       startkey: `${deviceId}>${tripId}>step>`,
-      endkey: `${deviceId}>${tripId}>step>\ufff0`
+      endkey: `${deviceId}>${tripId}>step>\ufff0`,
     });
-    
+
     return result.rows
       .filter(row => row.doc && row.doc.type === 'step')
       .map(row => {
@@ -399,7 +411,7 @@ export async function getSteps(deviceId: string, tripId: string): Promise<Step[]
           finishLocationId: doc.data.finishLocationId,
           startAirport: doc.data.startAirport,
           finishAirport: doc.data.finishAirport,
-          description: doc.data.description
+          description: doc.data.description,
         } as Step;
       });
   } catch (error: any) {
@@ -419,12 +431,17 @@ export async function getSteps(deviceId: string, tripId: string): Promise<Step[]
  * @param subtitle - Trip subtitle
  * @returns Promise<boolean> - Success status
  */
-export async function createTrip(deviceId: string, tripId: string, title: string = 'My Trip', subtitle: string = ''): Promise<boolean> {
+export async function createTrip(
+  deviceId: string,
+  tripId: string,
+  title: string = 'My Trip',
+  subtitle: string = '',
+): Promise<boolean> {
   const db = getDatabase();
-  
+
   try {
     const timestamp = Date.now();
-    
+
     const tripDocument: TripDocument = {
       _id: createTripDocId(deviceId, tripId),
       type: 'trip',
@@ -434,10 +451,10 @@ export async function createTrip(deviceId: string, tripId: string, title: string
         created_at: timestamp,
         updated_at: timestamp,
         title,
-        subtitle
-      }
+        subtitle,
+      },
     };
-    
+
     await db.put(tripDocument);
     return true;
   } catch (error: any) {
@@ -454,22 +471,26 @@ export async function createTrip(deviceId: string, tripId: string, title: string
  * @param data - Partial trip data to update
  * @returns Promise<boolean> - Success status
  */
-export async function updateTrip(deviceId: string, tripId: string, data: Partial<Pick<Trip, 'title' | 'subtitle'>>): Promise<boolean> {
+export async function updateTrip(
+  deviceId: string,
+  tripId: string,
+  data: Partial<Pick<Trip, 'title' | 'subtitle'>>,
+): Promise<boolean> {
   const db = getDatabase();
-  
+
   try {
     const documentId = createTripDocId(deviceId, tripId);
     const existingDoc = await db.get<TripDocument>(documentId);
-    
+
     const updatedDocument: TripDocument = {
       ...existingDoc,
       data: {
         ...existingDoc.data,
         ...data,
-        updated_at: Date.now()
-      }
+        updated_at: Date.now(),
+      },
     };
-    
+
     await db.put(updatedDocument);
     return true;
   } catch (error: any) {
@@ -490,20 +511,20 @@ export async function updateTrip(deviceId: string, tripId: string, data: Partial
  */
 export async function deleteTrip(deviceId: string, tripId: string): Promise<boolean> {
   const db = getDatabase();
-  
+
   try {
     const documentId = createTripDocId(deviceId, tripId);
     const existingDoc = await db.get<TripDocument>(documentId);
-    
+
     const updatedDocument: TripDocument = {
       ...existingDoc,
       data: {
         ...existingDoc.data,
         deleted_at: Date.now(),
-        updated_at: Date.now()
-      }
+        updated_at: Date.now(),
+      },
     };
-    
+
     await db.put(updatedDocument);
     return true;
   } catch (error: any) {
@@ -524,20 +545,20 @@ export async function deleteTrip(deviceId: string, tripId: string): Promise<bool
  */
 export async function getTrip(deviceId: string, tripId: string): Promise<Trip | null> {
   const db = getDatabase();
-  
+
   try {
     const documentId = createTripDocId(deviceId, tripId);
     const doc = await db.get<TripDocument>(documentId);
-    
+
     if (doc.type !== 'trip') {
       return null;
     }
-    
+
     // Don't return deleted trips unless specifically requested
     if (doc.data.deleted_at) {
       return null;
     }
-    
+
     return doc.data;
   } catch (error: any) {
     if (error.status === 404) {
@@ -555,20 +576,20 @@ export async function getTrip(deviceId: string, tripId: string): Promise<Trip | 
  * @param tripId - Trip UUID
  * @returns Promise with trip info, locations, and steps
  */
-export async function loadTripData(deviceId: string, tripId: string): Promise<{ 
-  trip: Trip | null; 
-  locations: Location[]; 
-  steps: Step[] 
+export async function loadTripData(deviceId: string, tripId: string): Promise<{
+  trip: Trip | null;
+  locations: Location[];
+  steps: Step[]
 }> {
   try {
     // Load all data in parallel
     const [trip, locations, steps] = await Promise.all([
       getTrip(deviceId, tripId),
       getLocations(deviceId, tripId),
-      getSteps(deviceId, tripId)
+      getSteps(deviceId, tripId),
     ]);
-    
-    return { trip, locations, steps };
+
+    return {trip, locations, steps};
   } catch (error: any) {
     console.error('Error loading trip data:', error);
     handleDatabaseError(error);
@@ -629,20 +650,20 @@ export async function validateStepLocationReferences(deviceId: string, tripId: s
   try {
     const startLocationDocId = createLocationDocId(deviceId, tripId, step.startLocationId);
     const startLocation = await getLocationByDocumentId(startLocationDocId);
-    
+
     if (!startLocation) {
       return false;
     }
-    
+
     if (step.finishLocationId) {
       const finishLocationDocId = createLocationDocId(deviceId, tripId, step.finishLocationId);
       const finishLocation = await getLocationByDocumentId(finishLocationDocId);
-      
+
       if (!finishLocation) {
         return false;
       }
     }
-    
+
     return true;
   } catch (error) {
     console.error('Error validating step location references:', error);
