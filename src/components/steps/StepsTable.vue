@@ -1,9 +1,9 @@
 <script lang="ts" setup>
-import {computed, ref} from 'vue';
-import {useAppState} from '../../composables/useAppState.ts';
+import {ref} from 'vue';
 import Button from 'primevue/button';
 import type {Step, StepType} from '../../types';
-import {formatISOWithTZ} from '../../utils/datetime.ts';
+import {useAppState} from '../../composables/useAppState';
+import {formatISOWithTZ} from '../../utils/datetime';
 import MoveCard from './MoveCard.vue';
 import MoveEditModal from './MoveEditModal.vue';
 import StayCard from './StayCard.vue';
@@ -15,13 +15,6 @@ const {sortedSteps, locationsList, locations, addStep, updateStep, deleteStep, i
 const editModalVisible = ref(false);
 const editingStep = ref<Step | null>(null);
 const isCreatingNewStep = ref(false);
-
-// Convert steps to cards data with computed properties for editing
-const cardsData = computed(() =>
-  sortedSteps.value.map(step => ({
-    ...step,
-  })),
-);
 
 const addNewStep = (type: StepType) => {
   const lastStep = sortedSteps.value[sortedSteps.value.length - 1];
@@ -158,7 +151,7 @@ const handleModalClose = () => {
 
     <div v-else class="cards-container">
       <template
-        v-for="step in cardsData"
+        v-for="step in sortedSteps"
         :key="step.id"
       >
         <MoveCard

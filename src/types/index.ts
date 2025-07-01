@@ -100,8 +100,9 @@ export interface Trip {
   created_at: number; // timestamp
   updated_at: number; // timestamp 
   deleted_at?: number; // timestamp, optional (soft delete)
-  title: string;
-  subtitle: string;
+  places: string;
+  month: string;
+  duration: string;
 }
 
 // PouchDB document metadata
@@ -149,8 +150,9 @@ export interface TripDocument extends PouchDBMeta {
   created_at: number; // timestamp
   updated_at: number; // timestamp 
   deleted_at?: number; // timestamp, optional (soft delete)
-  title: string;
-  subtitle: string;
+  places: string;
+  month: string;
+  duration: string;
 }
 
 // Union type for all document types

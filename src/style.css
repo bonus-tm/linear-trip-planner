@@ -22,6 +22,8 @@
   --color-move-rectangle-border: rgba(59, 130, 246, 0.5);
   --color-move-rectangle-hover: rgba(59, 130, 246, 0.4);
   --color-move-duration-bg: #c4d9fc;
+
+  --nav-width: 16rem;
 }
 
 @media (prefers-color-scheme: dark) {

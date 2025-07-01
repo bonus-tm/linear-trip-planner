@@ -3,6 +3,7 @@ import PouchDBFind from 'pouchdb-find';
 import type {Location, LocationDocument, Step, StepDocument, Trip, TripDocument} from '../types';
 import {createLocationDocId, createStepDocId, createTripDocId} from './documentIds';
 import {generateLocationId, generateStepId} from './ids';
+import {sortByMonthYear} from './datetime.ts';
 
 // Database configuration
 export const DB_NAME = 'timeline-data';
@@ -99,14 +100,12 @@ export async function addLocation(deviceId: string, tripId: string, location: Om
     await db.put(locationDocument);
 
     // Return the location in the format expected by the app
-    const createdLocation: Location = {
+    return {
       id: locationId,
       name: location.name,
       coordinates: location.coordinates,
       timezone: location.timezone,
     };
-
-    return createdLocation;
   } catch (error: any) {
     console.error('Error adding location:', error);
     handleDatabaseError(error);
@@ -283,7 +282,7 @@ export async function addStep(deviceId: string, tripId: string, step: Omit<Step,
     await db.put(stepDocument);
 
     // Return the step in the format expected by the app
-    const createdStep: Step = {
+    return {
       id: stepId,
       type: step.type,
       startDate: step.startDate,
@@ -296,8 +295,6 @@ export async function addStep(deviceId: string, tripId: string, step: Omit<Step,
       finishAirport: step.finishAirport,
       description: step.description,
     };
-
-    return createdStep;
   } catch (error: any) {
     console.error('Error adding step:', error);
     handleDatabaseError(error);
@@ -325,7 +322,7 @@ export async function updateStep(
     const documentId = createStepDocId(deviceId, tripId, stepId);
     const existingDoc = await db.get<StepDocument>(documentId);
 
-    const { type: stepType, ...updateData } = data;
+    const {type: stepType, ...updateData} = data;
     const updatedDocument: StepDocument = {
       ...existingDoc,
       ...updateData,
@@ -419,15 +416,17 @@ export async function getSteps(deviceId: string, tripId: string): Promise<Step[]
  * Create a new trip document in PouchDB
  * @param deviceId - Device UUID
  * @param tripId - Trip UUID
- * @param title - Trip title
- * @param subtitle - Trip subtitle
+ * @param places
+ * @param month
+ * @param duration
  * @returns Promise<boolean> - Success status
  */
 export async function createTrip(
   deviceId: string,
   tripId: string,
-  title: string = 'My Trip',
-  subtitle: string = '',
+  places: string = '',
+  month: string = '',
+  duration: string = '',
 ): Promise<boolean> {
   const db = getDatabase();
 
@@ -441,8 +440,9 @@ export async function createTrip(
       trip_id: tripId,
       created_at: timestamp,
       updated_at: timestamp,
-      title,
-      subtitle,
+      places,
+      month,
+      duration,
     };
 
     await db.put(tripDocument);
@@ -464,30 +464,46 @@ export async function createTrip(
 export async function updateTrip(
   deviceId: string,
   tripId: string,
-  data: Partial<Pick<Trip, 'title' | 'subtitle'>>,
+  data: Partial<Pick<Trip, 'places' | 'month' | 'duration'>>,
 ): Promise<boolean> {
   const db = getDatabase();
 
-  try {
-    const documentId = createTripDocId(deviceId, tripId);
-    const existingDoc = await db.get<TripDocument>(documentId);
+  // Retry up to 3 times on conflicts
+  let retries = 3;
 
-    const updatedDocument: TripDocument = {
-      ...existingDoc,
-      ...data,
-      updated_at: Date.now(),
-    };
+  while (retries > 0) {
+    try {
+      const documentId = createTripDocId(deviceId, tripId);
+      const existingDoc = await db.get<TripDocument>(documentId);
 
-    await db.put(updatedDocument);
-    return true;
-  } catch (error: any) {
-    if (error.status === 404) {
-      throw new DocumentNotFoundError(`Trip with ID ${tripId} not found`);
+      const updatedDocument: TripDocument = {
+        ...existingDoc,
+        ...data,
+        updated_at: Date.now(),
+      };
+
+      await db.put(updatedDocument);
+      return true;
+    } catch (error: any) {
+      if (error.status === 404) {
+        throw new DocumentNotFoundError(`Trip with ID ${tripId} not found`);
+      }
+
+      // Handle document update conflicts by retrying
+      if (error.status === 409 && retries > 1) {
+        retries--;
+        // Brief delay before retry to allow other operations to complete
+        await new Promise(resolve => setTimeout(resolve, 10 + Math.random() * 20));
+        continue;
+      }
+
+      console.error('Error updating trip:', error);
+      handleDatabaseError(error);
+      throw error;
     }
-    console.error('Error updating trip:', error);
-    handleDatabaseError(error);
-    throw error;
   }
+
+  throw new Error('Failed to update trip after multiple retries due to conflicts');
 }
 
 /**
@@ -547,14 +563,60 @@ export async function getTrip(deviceId: string, tripId: string): Promise<Trip | 
       created_at: doc.created_at,
       updated_at: doc.updated_at,
       deleted_at: doc.deleted_at,
-      title: doc.title,
-      subtitle: doc.subtitle,
+      places: doc.places,
+      month: doc.month,
+      duration: doc.duration,
     };
   } catch (error: any) {
     if (error.status === 404) {
       return null;
     }
     console.error('Error getting trip:', error);
+    handleDatabaseError(error);
+    throw error;
+  }
+}
+
+/**
+ * Get all trips for a specific device
+ * @param deviceId - Device UUID
+ * @returns Promise<Array<Trip & { id: string }>> - Array of trips with their IDs, sorted by updated_at desc
+ */
+export async function getAllTrips(deviceId: string): Promise<Array<Trip & { id: string }>> {
+  const db = getDatabase();
+
+  try {
+    // Query all trip documents for this device
+    const result = await db.allDocs<TripDocument>({
+      include_docs: true,
+      startkey: `${deviceId}>`,
+      endkey: `${deviceId}>\ufff0`,
+    });
+    console.log('db trips:', result);
+
+    return result.rows
+      .filter(row => row.doc && row.doc.type === 'trip' && !row.doc.deleted_at)
+      .map(row => {
+        const doc = row.doc!;
+        return {
+          id: doc.trip_id,
+          created_at: doc.created_at,
+          updated_at: doc.updated_at,
+          deleted_at: doc.deleted_at,
+          places: doc.places,
+          month: doc.month,
+          duration: doc.duration,
+        };
+      })
+      // Sort by trip's start month, then by updated_at in descending order (most recent first)
+      .sort((a, b) => {
+        const byMonth = sortByMonthYear(a.month, b.month);
+        return byMonth === 0
+          ? b.updated_at - a.updated_at
+          : byMonth;
+      });
+  } catch (error: any) {
+    console.error('Error getting all trips:', error);
     handleDatabaseError(error);
     throw error;
   }

@@ -9,6 +9,7 @@ import StepsTable from './components/steps/StepsTable.vue';
 import Timeline from './components/timeline/Timeline.vue';
 import ResetButton from './components/ResetButton.vue';
 import LinkToGithub from './components/LinkToGithub.vue';
+import TripsList from './components/TripsList.vue';
 
 const {error, initState} = useAppState();
 const toast = useToast();
@@ -38,12 +39,18 @@ const version = ref(__APP_VERSION__);
 <template>
   <div class="app-container">
     <main>
-      <ResetButton/>
       <AppTitle/>
       <Timeline/>
       <StepsTable/>
       <LocationsTable/>
     </main>
+
+    <nav>
+      <ResetButton/>
+      <div class="trips">
+        <TripsList/>
+      </div>
+    </nav>
 
     <footer>
       <span>2025 bTM,</span>
@@ -63,16 +70,25 @@ const version = ref(__APP_VERSION__);
 <style scoped>
 .app-container {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-items: flex-start;
+  display: grid;
+  grid-template-columns: var(--nav-width) 1fr;
+  grid-template-rows: 1fr auto;
 }
 
 main {
   position: relative;
+  grid-area: 1/2/-2/-1;
+}
+
+nav {
+  grid-area:  1/1/-1/2;
+  background-color: #fffbe5;
+  padding: 1rem;
+  border-right: thin solid var(--color-border);
 }
 
 footer {
+  grid-area: 2/2/-1/-1;
   padding: 1rem;
   color: var(--color-text-muted);
   font-size: 0.75rem;

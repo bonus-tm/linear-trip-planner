@@ -56,9 +56,4 @@ const handleNewTravel = () => {
 </template>
 
 <style scoped>
-.reset-button {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-}
 </style>

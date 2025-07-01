@@ -126,3 +126,50 @@ export function isWeekendDay(dateString: string) {
   const day = date.getDay(); // 0 = Sunday, 6 = Saturday
   return day === 0 || day === 6;
 }
+
+/**
+ * Sort
+ * @param a {string} 'June 2025' or 'June—September 2025' or 'June 2025—July 2026'
+ * @param b {string} same as ↑
+ * @return {number} -1, 0 or 1
+ */
+export function sortByMonthYear(a: string, b: string): number {
+  // Function to extract first month and year from different formats
+  const extractFirstMonthYear = (str: string) => {
+    if (str.includes('—')) {
+      const parts = str.split('—');
+      const firstPart = parts[0].trim();
+      
+      // Check if first part has year (M Y—M Y format) or not (M—M Y format)
+      if (firstPart.includes(' ')) {
+        // Format: "June 2025—July 2026"
+        return firstPart;
+      } else {
+        // Format: "June—September 2025"
+        // Extract year from the end of the string
+        const lastPart = parts[parts.length - 1].trim();
+        const yearMatch = lastPart.match(/\d{4}$/);
+        const year = yearMatch ? yearMatch[0] : '';
+        return `${firstPart} ${year}`;
+      }
+    } else {
+      // Format: "June 2025"
+      return str.trim();
+    }
+  };
+  
+  const aFirst = extractFirstMonthYear(a);
+  const bFirst = extractFirstMonthYear(b);
+  
+  // Parse month and year from strings like "June 2025"
+  const [monthA, yearA] = aFirst.split(' ');
+  const [monthB, yearB] = bFirst.split(' ');
+  
+  // Create Date objects using "1 Month Year" format
+  const dateA = new Date(`1 ${monthA} ${yearA}`);
+  const dateB = new Date(`1 ${monthB} ${yearB}`);
+  
+  // Sort descending (latest first): if a is later, it should come before b (negative result)
+  const diff = dateB.getTime() - dateA.getTime();
+  return diff > 0 ? 1 : diff < 0 ? -1 : 0;
+}

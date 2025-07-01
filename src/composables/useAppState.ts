@@ -1,4 +1,4 @@
-import {computed, ref} from 'vue';
+import {computed, nextTick, ref, watchEffect} from 'vue';
 import type {Location, LocationsMap, Step, StepsList, Trip} from '../types';
 import {generateTripId, getOrCreateDeviceId, getOrCreateTripId} from '../utils/ids';
 import {
@@ -8,6 +8,7 @@ import {
   deleteLocation as dbDeleteLocation,
   deleteStep as dbDeleteStep,
   deleteTrip as dbDeleteTrip,
+  getAllTrips as dbGetAllTrips,
   getLocations as dbGetLocations,
   getSteps as dbGetSteps,
   initializeDatabase,
@@ -17,6 +18,7 @@ import {
   updateTrip as dbUpdateTrip,
   validateStepLocationReferences,
 } from '../utils/database';
+import {DAY_24_HRS, formatDurationDays, formatISOWithTZ, getDayBeginTimestamp} from '../utils/datetime';
 
 const error = ref<string | null>(null);
 
@@ -24,19 +26,36 @@ const error = ref<string | null>(null);
 const locations = ref<LocationsMap>({});
 const steps = ref<StepsList>([]);
 const currentTrip = ref<Trip | null>(null);
+const allTrips = ref<Array<Trip & { id: string }>>([]);
 
 // Trip and device ID management (for session use)
 const currentTripId = ref<string | null>(null);
 const deviceId = ref<string>(getOrCreateDeviceId());
 
+// For title
+const tripPlaces = ref('');
+const tripMonth = ref('');
+const tripDuration = ref('');
+
 // Loading states
 const isLoading = ref(false);
 
 export function useAppState() {
+  // Computed values
+  const locationsList = computed(() => Object.values(locations.value));
+  const sortedSteps = computed(() =>
+    [...steps.value].sort((a, b) => {
+      return a.startTimestamp - b.startTimestamp;
+    }),
+  );
+
   // Initialize database and load data
   const initState = async () => {
     try {
       await initializeDatabase();
+
+      // Load all trips first
+      await loadAllTrips();
 
       // Load data if we have a current trip
       if (!currentTripId.value) {
@@ -126,6 +145,32 @@ export function useAppState() {
     } finally {
       isLoading.value = false;
     }
+  };
+
+  // Load all trips from PouchDB
+  const loadAllTrips = async (): Promise<void> => {
+    try {
+      const trips = await dbGetAllTrips(deviceId.value);
+      allTrips.value = trips;
+      error.value = null;
+    } catch (err) {
+      console.error('Failed to load all trips:', err);
+      error.value = 'Failed to load trips';
+    }
+  };
+
+  // Switch to a specific trip
+  const switchToTrip = async (tripId: string): Promise<void> => {
+    if (currentTripId.value === tripId) {
+      return; // Already on this trip
+    }
+
+    currentTripId.value = tripId;
+    // Store the current trip ID in localStorage for persistence
+    localStorage.setItem('travel-timeline-trip-id', tripId);
+
+    // Load the trip data
+    await loadTripData();
   };
 
   // Location operations
@@ -245,6 +290,14 @@ export function useAppState() {
       // Update reactive state
       steps.value.push(createdStep);
       error.value = null;
+
+      await nextTick();
+      await updateTripInfo({
+        places: tripPlaces.value,
+        month: tripMonth.value,
+        duration: tripDuration.value,
+      });
+
       return true;
     } catch (err) {
       console.error('Failed to add step:', err);
@@ -288,6 +341,14 @@ export function useAppState() {
         ...updatedStep,
       };
       error.value = null;
+
+      await nextTick();
+      await updateTripInfo({
+        places: tripPlaces.value,
+        month: tripMonth.value,
+        duration: tripDuration.value,
+      });
+
       return true;
     } catch (err) {
       console.error('Failed to update step:', err);
@@ -311,6 +372,14 @@ export function useAppState() {
       // Update reactive state
       steps.value = steps.value.filter(s => s.id !== stepId);
       error.value = null;
+
+      await nextTick();
+      await updateTripInfo({
+        places: tripPlaces.value,
+        month: tripMonth.value,
+        duration: tripDuration.value,
+      });
+
       return true;
     } catch (err) {
       console.error('Failed to delete step:', err);
@@ -322,16 +391,18 @@ export function useAppState() {
   };
 
   // Trip operations
-  const createNewTrip = async (title: string = 'My Trip', subtitle: string = ''): Promise<string> => {
+  const createNewTrip = async (): Promise<string> => {
     try {
       isLoading.value = true;
       const newTripId = generateTripId();
 
       // Create the trip document in PouchDB
-      await dbCreateTrip(deviceId.value, newTripId, title, subtitle);
+      await dbCreateTrip(deviceId.value, newTripId, '', '', '');
 
       // Update app state
       currentTripId.value = newTripId;
+      // Store the new trip ID in localStorage for persistence
+      localStorage.setItem('travel-timeline-trip-id', newTripId);
 
       // Clear current locations and steps for new trip
       locations.value = {};
@@ -339,6 +410,9 @@ export function useAppState() {
 
       // Load the new trip data (should be empty except for trip info)
       await loadTripData();
+
+      // Refresh the trips list to include the new trip
+      await loadAllTrips();
 
       error.value = null;
       return newTripId;
@@ -351,7 +425,8 @@ export function useAppState() {
     }
   };
 
-  const updateTripInfo = async (data: Partial<Pick<Trip, 'title' | 'subtitle'>>): Promise<boolean> => {
+  const updateTripInfo = async (data: Partial<Pick<Trip, 'places' | 'month' | 'duration'>>): Promise<boolean> => {
+    console.log('update tripInfo', data);
     if (!currentTripId.value) {
       error.value = 'No active trip. Please create a new trip first.';
       return false;
@@ -369,6 +444,9 @@ export function useAppState() {
           updated_at: Date.now(),
         };
       }
+
+      // Refresh the trips list to show updated information
+      await loadAllTrips();
 
       error.value = null;
       return true;
@@ -411,13 +489,89 @@ export function useAppState() {
     }
   };
 
-  // Computed values
-  const locationsList = computed(() => Object.values(locations.value));
-  const sortedSteps = computed(() =>
-    [...steps.value].sort((a, b) => {
-      return a.startTimestamp - b.startTimestamp;
-    }),
-  );
+  // Update app and document titles
+  watchEffect(() => {
+    if (sortedSteps.value.length > 0) {
+      const startTimezone = locations.value[sortedSteps.value[0].startLocationId].timezone;
+      const start = getDayBeginTimestamp(sortedSteps.value[0].startTimestamp, startTimezone);
+
+      const finishLocationId = sortedSteps.value[sortedSteps.value.length - 1]?.finishLocationId;
+      const finishTimezone = finishLocationId
+        ? locations.value[finishLocationId].timezone
+        : 0;
+      let finish = getDayBeginTimestamp(
+        sortedSteps.value[sortedSteps.value.length - 1].finishTimestamp,
+        finishTimezone,
+      );
+      finish += DAY_24_HRS;
+
+      tripDuration.value = formatDurationDays(
+        formatISOWithTZ(start, startTimezone),
+        formatISOWithTZ(finish, finishTimezone),
+      );
+    } else {
+      tripDuration.value = '';
+    }
+
+    const places = new Set();
+    const months: Set<string> = new Set();
+
+    const startLocationId = sortedSteps.value[0]?.startLocationId;
+    if (startLocationId) {
+      const startLocation = locations.value[startLocationId];
+      if (startLocation) {
+        places.add(startLocation.name);
+      }
+    }
+    sortedSteps.value.forEach((step) => {
+      months.add(step.startDate.substring(0, 7));
+      months.add(step.finishDate.substring(0, 7));
+      if (step.type === 'stay') {
+        const stayLocation = locations.value[step.startLocationId];
+        if (stayLocation) {
+          places.add(stayLocation.name);
+        }
+      }
+    });
+    const finishLocationId = sortedSteps.value[sortedSteps.value.length - 1]?.finishLocationId;
+    if (finishLocationId) {
+      const finishLocation = locations.value[finishLocationId];
+      if (finishLocation) {
+        places.add(finishLocation.name);
+      }
+    }
+
+    tripPlaces.value = Array.from(places).join('&thinsp;—&thinsp;');
+
+    const monthsUniq: string[] = Array.from(months).sort();
+
+    if (monthsUniq.length === 1) {
+      const [y, m] = monthsUniq[0].split('-');
+      const d = new Date(parseInt(y), parseInt(m) - 1, 1);
+      tripMonth.value = d.toLocaleDateString('en', {month: 'long', year: 'numeric'});
+    } else if (monthsUniq.length > 1) {
+      const first = monthsUniq[0];
+      const last = monthsUniq[monthsUniq.length - 1];
+
+      const [firstYear, firstMonth] = first.split('-');
+      const [lastYear, lastMonth] = last.split('-');
+
+      const firstDate = new Date(parseInt(firstYear), parseInt(firstMonth) - 1, 1);
+      const lastDate = new Date(parseInt(lastYear), parseInt(lastMonth) - 1, 1);
+
+      if (firstYear === lastYear) {
+        // Same year: "January — March 2024"
+        const firstMonthName = firstDate.toLocaleDateString('en', {month: 'long'});
+        const lastMonthName = lastDate.toLocaleDateString('en', {month: 'long'});
+        tripMonth.value = `${firstMonthName}&thinsp;—&thinsp;${lastMonthName} ${firstYear}`;
+      } else {
+        // Different years: "December 2023 — February 2024"
+        const firstMonthYear = firstDate.toLocaleDateString('en', {month: 'long', year: 'numeric'});
+        const lastMonthYear = lastDate.toLocaleDateString('en', {month: 'long', year: 'numeric'});
+        tripMonth.value = `${firstMonthYear}&thinsp;—&thinsp;${lastMonthYear}`;
+      }
+    }
+  });
 
   return {
     initState,
@@ -426,10 +580,14 @@ export function useAppState() {
     locations,
     steps,
     currentTrip,
+    allTrips,
     isLoading,
     error,
     currentTripId,
     deviceId,
+    tripDuration,
+    tripPlaces,
+    tripMonth,
 
     // Computed
     locationsList,
@@ -452,5 +610,7 @@ export function useAppState() {
     updateTripInfo,
     deleteTripInfo,
     loadTripData,
+    loadAllTrips,
+    switchToTrip,
   };
 } 

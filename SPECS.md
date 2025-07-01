@@ -137,8 +137,9 @@ interface TripDocument {
   created_at: number; // timestamp
   updated_at: number; // timestamp  
   deleted_at?: number; // timestamp, optional (soft delete)
-  title: string;
-  subtitle: string;
+  places: string;
+  month: string;
+  duration: string;
 }
 ```
 
@@ -331,8 +332,8 @@ interface DatabaseOperations {
   getSteps(deviceId: string, tripId: string): Promise<Step[]>;
   
   // Trip operations
-  createTrip(deviceId: string, tripId: string, title: string, subtitle: string): Promise<boolean>;
-  updateTrip(deviceId: string, tripId: string, data: Partial<{ title: string; subtitle: string }>): Promise<boolean>;
+  createTrip(deviceId: string, tripId: string, places: string, month: string, duration: string): Promise<boolean>;
+  updateTrip(deviceId: string, tripId: string, data: Partial<{ places: string; month: string; duration: string }>): Promise<boolean>;
   deleteTrip(deviceId: string, tripId: string): Promise<boolean>; // Soft delete
   getTrip(deviceId: string, tripId: string): Promise<TripInfo | null>;
   
@@ -527,8 +528,9 @@ Trips are stored as PouchDB documents with the following structure:
   "trip_id": "trip-uuid",
   "created_at": 1699123456789,
   "updated_at": 1699123456789,
-  "title": "My Amazing Trip",
-  "subtitle": "Summer 2024 Adventure"
+  "places": "Paris—London—Tokyo",
+  "month": "July 2024",
+  "duration": "14 days"
 }
 ```
 
@@ -543,18 +545,20 @@ Trip deletion is implemented as a soft delete, preserving trip data:
   "created_at": 1699123456789,
   "updated_at": 1699234567890,
   "deleted_at": 1699234567890,
-  "title": "Deleted Trip",
-  "subtitle": "No longer active"
+  "places": "Deleted Trip",
+  "month": "",
+  "duration": ""
 }
 ```
 
 ### New Trip Creation Workflow
 The enhanced "New travel" functionality now:
 1. **Generates new trip ID**: Uses `crypto.randomUUID()` for unique identification
-2. **Creates trip document**: Stores trip metadata in PouchDB with default title/subtitle
+2. **Creates trip document**: Stores trip metadata in PouchDB with empty places/month/duration fields
 3. **Clears app state**: Resets locations and steps to empty state for new trip
 4. **Preserves old data**: Previous trip data remains in PouchDB (no deletion)
 5. **Loads new trip**: Initializes app state with new trip data (empty initially)
+6. **Auto-updates fields**: Places, month, and duration are automatically populated as steps and locations are added
 
 ### Batch Data Loading
 Implemented efficient parallel loading of all trip-related data:

@@ -102,10 +102,10 @@ const {layout, dayWidth, isFitZoom, isMaxZoom, isMinZoom, zoomIn, zoomOut, zoomT
 .timeline-wrapper {
   position: relative;
   overflow-x: auto;
+  max-width: calc(100vw - var(--nav-width));
 }
 
 .timeline-canvas {
   position: relative;
-  min-width: fit-content;
 }
 </style> 
