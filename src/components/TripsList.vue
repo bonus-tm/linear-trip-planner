@@ -46,8 +46,6 @@ const getTripSubtitle = (trip: Trip & { id: string }): string => {
 
 <template>
   <div class="trips-list">
-    <h3 class="trips-title">Trips</h3>
-
     <div v-if="isLoading" class="loading">
       Loading trips...
     </div>
@@ -56,8 +54,8 @@ const getTripSubtitle = (trip: Trip & { id: string }): string => {
       No trips yet
     </div>
 
-    <ul v-else class="trips">
-      <li
+    <div v-else class="trips">
+      <div
         v-for="trip in allTrips"
         :key="trip.id"
         class="trip-item"
@@ -72,26 +70,13 @@ const getTripSubtitle = (trip: Trip & { id: string }): string => {
             <span class="trip-time">{{ formatTime(trip.updated_at) }}</span>
           </div>
         </div>
-        <div v-if="trip.id === currentTripId" class="current-indicator">
-          ●
-        </div>
-      </li>
-    </ul>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .trips-list {
-  width: 100%;
-}
-
-.trips-title {
-  margin: 0 0 1rem 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-text);
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: 0.5rem;
 }
 
 .loading, .empty-state {
@@ -102,18 +87,14 @@ const getTripSubtitle = (trip: Trip & { id: string }): string => {
 }
 
 .trips {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
 }
 
 .trip-item {
   position: relative;
-  padding: 0.75rem;
-  margin-bottom: 0.5rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
+  padding: 0.5rem 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -138,7 +119,7 @@ const getTripSubtitle = (trip: Trip & { id: string }): string => {
 }
 
 .trip-title {
-  margin: 0 0 0.25rem 0;
+  margin: 0 0 0.125rem 0;
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--color-text);
@@ -148,7 +129,7 @@ const getTripSubtitle = (trip: Trip & { id: string }): string => {
 }
 
 .trip-subtitle {
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 0.25rem 0;
   font-size: 0.75rem;
   color: var(--color-text-muted);
   overflow: hidden;
@@ -162,33 +143,4 @@ const getTripSubtitle = (trip: Trip & { id: string }): string => {
   font-size: 0.625rem;
   color: var(--color-text-muted);
 }
-
-.current-indicator {
-  color: var(--color-move-rectangle-border);
-  font-size: 0.75rem;
-  margin-left: 0.5rem;
-}
-
-/* Make the trips list scrollable if it gets too long */
-.trips {
-  max-height: 60vh;
-  overflow-y: auto;
-}
-
-.trips::-webkit-scrollbar {
-  width: 4px;
-}
-
-.trips::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.trips::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 2px;
-}
-
-.trips::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-muted);
-}
-</style> 
+</style>

@@ -23,6 +23,7 @@
   --color-move-rectangle-hover: rgba(59, 130, 246, 0.4);
   --color-move-duration-bg: #c4d9fc;
 
+  --color-nav-bg: #fffbe5;
   --nav-width: 16rem;
 }
 
@@ -51,6 +52,8 @@
     --color-move-rectangle-border: rgba(100, 181, 246, 0.6);
     --color-move-rectangle-hover: rgba(100, 181, 246, 0.5);
     --color-move-duration-bg: #365773;
+
+    --color-nav-bg: #211e1a;
   }
 }
 

@@ -29,7 +29,7 @@ const handleNewTravel = () => {
         
         // Generate new trip ID, create trip document, and clear all locations and steps
         // Old trip data remains in PouchDB (no deletion) as specified in requirements
-        await createNewTrip('My Trip', '');
+        await createNewTrip();
 
         // Reset zoom level to 'fit' - keeping this in localStorage as specified
         localStorage.setItem('trip-planner-zoom', 'fit');
@@ -47,7 +47,7 @@ const handleNewTravel = () => {
   <Button
     class="reset-button"
     icon="pi pi-pen-to-square"
-    label="New travel"
+    label="New trip"
     severity="secondary"
     :loading="isLoading || isResetting"
     @click="handleNewTravel"
@@ -56,4 +56,7 @@ const handleNewTravel = () => {
 </template>
 
 <style scoped>
+.reset-button {
+  margin: 1rem 1rem 0;
+}
 </style>

@@ -38,25 +38,25 @@ const version = ref(__APP_VERSION__);
 
 <template>
   <div class="app-container">
+    <nav>
+      <ResetButton/>
+      <div class="trips">
+        <TripsList/>
+      </div>
+
+      <footer>
+        <span>2025 bTM,</span>
+        <LinkToGithub/>
+        <span class="app-ver">v{{ version }}</span>
+      </footer>
+    </nav>
+
     <main>
       <AppTitle/>
       <Timeline/>
       <StepsTable/>
       <LocationsTable/>
     </main>
-
-    <nav>
-      <ResetButton/>
-      <div class="trips">
-        <TripsList/>
-      </div>
-    </nav>
-
-    <footer>
-      <span>2025 bTM,</span>
-      <LinkToGithub/>
-      <span class="app-ver">v{{ version }}</span>
-    </footer>
 
     <Toast
       group="err"
@@ -72,32 +72,28 @@ const version = ref(__APP_VERSION__);
   min-height: 100vh;
   display: grid;
   grid-template-columns: var(--nav-width) 1fr;
-  grid-template-rows: 1fr auto;
 }
 
 main {
   position: relative;
-  grid-area: 1/2/-2/-1;
 }
 
 nav {
-  grid-area:  1/1/-1/2;
-  background-color: #fffbe5;
-  padding: 1rem;
+  background-color: var(--color-nav-bg);
   border-right: thin solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 footer {
-  grid-area: 2/2/-1/-1;
-  padding: 1rem;
+  margin: auto 1rem 1rem;
   color: var(--color-text-muted);
   font-size: 0.75rem;
-  margin-block-start: auto;
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 0.5rem;
-
 
   .app-ver {
     opacity: 0.5;
