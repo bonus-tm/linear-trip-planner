@@ -357,6 +357,7 @@ interface DatabaseOperations {
   createTrip(deviceId: string, tripId: string, places: string[], month: number[][], duration: number): Promise<boolean>;
   updateTrip(deviceId: string, tripId: string, data: Partial<Pick<Trip, 'places' | 'month' | 'duration'>>): Promise<boolean>;
   deleteTrip(deviceId: string, tripId: string): Promise<boolean>; // Soft delete
+  deleteEntireTrip(deviceId: string, tripId: string): Promise<boolean>; // Hard delete - removes all trip data
   getTrip(deviceId: string, tripId: string): Promise<Trip | null>;
   getAllTrips(deviceId: string): Promise<Array<Trip & { id: string }>>;
   
@@ -519,13 +520,20 @@ Steps are stored as PouchDB documents with the following structure:
 - **ID Generation**: All trip IDs use `crypto.randomUUID()` exclusively
 - **Query Patterns**: All trip queries use new ">" separator format
 
+✅ **Phase 4.5 Complete Trip Deletion - COMPLETED**
+- **deleteEntireTrip**: Implemented with complete removal of all trip-related data
+- **TripDeleteButton**: New UI component with confirmation dialog and danger zone design
+- **Bulk Operations**: Efficient deletion using PouchDB bulk operations
+- **Auto Navigation**: Automatic switching to first available trip after deletion
+
 ### Async Operation Handling
 All trip operations are now asynchronous and return Promises:
 ```typescript
 // Examples of updated function signatures
 const createNewTrip = async (title?: string, subtitle?: string): Promise<string>
 const updateTripInfo = async (data: Partial<Pick<Trip, 'title' | 'subtitle'>>): Promise<boolean>
-const deleteTripInfo = async (): Promise<boolean>
+const deleteTripInfo = async (): Promise<boolean> // Soft delete
+const deleteEntireTrip = async (): Promise<boolean> // Hard delete
 const loadTripData = async (): Promise<void>
 ```
 
@@ -539,7 +547,8 @@ const currentTripId = ref<string | null>(null);
 // Trip operations available
 const createNewTrip = async (title: string = 'My Trip', subtitle: string = ''): Promise<string>
 const updateTripInfo = async (data: Partial<Pick<Trip, 'title' | 'subtitle'>>): Promise<boolean>
-const deleteTripInfo = async (): Promise<boolean>
+const deleteTripInfo = async (): Promise<boolean> // Soft delete
+const deleteEntireTrip = async (): Promise<boolean> // Hard delete with complete data removal
 ```
 
 ### Document Storage Format
@@ -575,6 +584,69 @@ Trip deletion is implemented as a soft delete, preserving trip data:
 }
 ```
 
+### Hard Delete Implementation
+✅ **Phase 4.5 Complete Trip Deletion - COMPLETED**
+- **deleteEntireTrip**: Implemented with complete removal of all trip-related data
+- **Bulk Operations**: Uses PouchDB bulk delete for efficient removal of multiple documents
+- **Complete Data Removal**: Deletes trip document, all locations, and all steps permanently
+- **UI Integration**: Integrated with TripDeleteButton component for user-initiated deletion
+
+The `deleteEntireTrip` function performs a complete hard delete:
+```typescript
+export async function deleteEntireTrip(deviceId: string, tripId: string): Promise<boolean> {
+  const db = getDatabase();
+
+  try {
+    // Get all documents for this trip (locations, steps, and trip document)
+    const result = await db.allDocs({
+      include_docs: true,
+      startkey: `${deviceId}>${tripId}>`,
+      endkey: `${deviceId}>${tripId}>\ufff0`,
+    });
+
+    // Prepare batch delete for all documents
+    const docsToDelete = result.rows
+      .filter(row => row.doc)
+      .map(row => ({
+        ...row.doc,
+        _deleted: true, // Mark for deletion
+      }));
+
+    if (docsToDelete.length > 0) {
+      // Perform bulk delete operation
+      await db.bulkDocs(docsToDelete);
+    }
+
+    return true;
+  } catch (error: any) {
+    console.error('Error deleting entire trip:', error);
+    handleDatabaseError(error);
+    throw error;
+  }
+}
+```
+
+### TripDeleteButton Component
+✅ **New UI Component - COMPLETED**
+- **Location**: `src/components/TripDeleteButton.vue`
+- **Placement**: Below LocationsTable in main app layout
+- **Confirmation**: Uses PrimeVue ConfirmDialog for user confirmation
+- **Trip Switching**: Automatically switches to first available trip after deletion
+- **Design**: Danger zone styling with clear warning messages
+
+**Component Features**:
+- **Confirmation Dialog**: Shows trip name and clear deletion warning
+- **Complete Deletion**: Uses `deleteEntireTrip` for permanent data removal
+- **Auto Navigation**: Switches to first available trip automatically after deletion
+- **Error Handling**: Comprehensive error management with user feedback
+- **Loading States**: Shows loading indicators during deletion process
+- **Responsive Design**: Mobile-friendly danger zone layout
+
+**Integration Points**:
+- **App.vue**: Added TripDeleteButton component below LocationsTable
+- **ConfirmDialog**: Added PrimeVue ConfirmDialog to App.vue for confirmation functionality
+- **useAppState**: Exposed `deleteEntireTrip` function for component use
+
 ### New Trip Creation Workflow
 The enhanced "New travel" functionality now:
 1. **Generates new trip ID**: Uses `crypto.randomUUID()` for unique identification
@@ -603,9 +675,11 @@ const loadTripData = async (): Promise<{
 
 ### UI Integration
 - **ResetButton**: Updated to create actual trip documents in PouchDB
+- **TripDeleteButton**: New component for complete trip deletion with confirmation dialog
 - **App State**: Trip information available throughout application via reactive state
 - **Trip Context**: All location and step operations now work within trip context
 - **Async Compatibility**: All trip operations compatible with existing async operation patterns
+- **ConfirmDialog**: PrimeVue confirmation service integrated for trip deletion confirmations
 
 ### Multiple Trip Management
 ✅ **Phase 4.4 Multiple Trip Support - COMPLETED**

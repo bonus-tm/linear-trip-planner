@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {onMounted, ref, watch} from 'vue';
 import Toast from 'primevue/toast';
+import ConfirmDialog from 'primevue/confirmdialog';
 import {useToast} from 'primevue/usetoast';
 import {useAppState} from './composables/useAppState';
 import AppTitle from './components/AppTitle.vue';
@@ -10,6 +11,7 @@ import Timeline from './components/timeline/Timeline.vue';
 import NewTripButton from './components/NewTripButton.vue';
 import LinkToGithub from './components/LinkToGithub.vue';
 import TripsList from './components/TripsList.vue';
+import TripDeleteButton from './components/TripDeleteButton.vue';
 
 const {error, initState} = useAppState();
 const toast = useToast();
@@ -57,6 +59,9 @@ const version = ref(__APP_VERSION__);
         <StepsTable/>
         <LocationsTable/>
       </div>
+      <div class="delete-trip">
+        <TripDeleteButton/>
+      </div>
     </main>
 
     <Toast
@@ -65,6 +70,7 @@ const version = ref(__APP_VERSION__);
       @close="clearError"
       @lifeEnd="clearError"
     />
+    <ConfirmDialog/>
   </div>
 </template>
 
@@ -87,6 +93,11 @@ main {
   .cards {
     background-color: var(--color-background);
     flex-grow: 1;
+  }
+
+  .delete-trip {
+    margin-block-start: auto;
+    background-color: var(--color-background);
   }
 }
 

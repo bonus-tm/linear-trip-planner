@@ -2,11 +2,15 @@ import {createApp} from 'vue';
 import PrimeVue from 'primevue/config';
 import ConfirmationService from 'primevue/confirmationservice';
 import ToastService from 'primevue/toastservice';
+import Tooltip from 'primevue/tooltip';
 import {definePreset} from '@primeuix/themes';
 import Aura from '@primeuix/themes/aura';
 import 'primeicons/primeicons.css';
 import './style.css';
 import App from './App.vue';
+
+
+
 
 const tlpPreset = definePreset(Aura, {
   components: {
@@ -32,4 +36,5 @@ app.use(PrimeVue, {
 });
 app.use(ConfirmationService);
 app.use(ToastService);
+app.directive('tooltip', Tooltip);
 app.mount('#app');

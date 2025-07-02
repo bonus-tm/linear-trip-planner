@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import Button from 'primevue/button';
-import ConfirmDialog from 'primevue/confirmdialog';
 import {useAppState} from '../composables/useAppState';
 import {ref} from 'vue';
 
@@ -34,7 +33,6 @@ const handleNewTravel = async () => {
     :loading="isLoading || isResetting"
     @click="handleNewTravel"
   />
-  <ConfirmDialog/>
 </template>
 
 <style scoped>

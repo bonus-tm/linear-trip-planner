@@ -8,6 +8,7 @@ import {
   deleteLocation as dbDeleteLocation,
   deleteStep as dbDeleteStep,
   deleteTrip as dbDeleteTrip,
+  deleteEntireTrip as dbDeleteEntireTrip,
   getAllTrips as dbGetAllTrips,
   getLocations as dbGetLocations,
   getSteps as dbGetSteps,
@@ -489,6 +490,35 @@ export function useAppState() {
     }
   };
 
+  const deleteEntireTrip = async (): Promise<boolean> => {
+    if (!currentTripId.value) {
+      error.value = 'No active trip. Please create a new trip first.';
+      return false;
+    }
+
+    try {
+      isLoading.value = true;
+      await dbDeleteEntireTrip(deviceId.value, currentTripId.value);
+
+      // Clear current trip data from reactive state
+      locations.value = {};
+      steps.value = [];
+      currentTrip.value = null;
+
+      // Refresh the trips list to remove the deleted trip
+      await loadAllTrips();
+
+      error.value = null;
+      return true;
+    } catch (err) {
+      console.error('Failed to delete entire trip:', err);
+      error.value = 'Failed to delete trip and its data';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
   // Update app and document titles
   watchEffect(() => {
     if (sortedSteps.value.length === 0) {
@@ -582,6 +612,7 @@ export function useAppState() {
     createNewTrip,
     updateTripInfo,
     deleteTripInfo,
+    deleteEntireTrip,
     loadTripData,
     loadAllTrips,
     switchToTrip,

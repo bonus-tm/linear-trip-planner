@@ -787,4 +787,43 @@ export async function closeDatabase(): Promise<void> {
       console.error('Error closing database:', error);
     }
   }
+}
+
+/**
+ * Completely delete a trip and all its related data (locations, steps, trip document)
+ * This is a hard delete - data cannot be recovered
+ * @param deviceId - Device UUID
+ * @param tripId - Trip UUID
+ * @returns Promise<boolean> - Success status
+ */
+export async function deleteEntireTrip(deviceId: string, tripId: string): Promise<boolean> {
+  const db = getDatabase();
+
+  try {
+    // Get all documents for this trip (locations, steps, and trip document)
+    const result = await db.allDocs({
+      include_docs: true,
+      startkey: `${deviceId}>${tripId}>`,
+      endkey: `${deviceId}>${tripId}>\ufff0`,
+    });
+
+    // Prepare batch delete for all documents
+    const docsToDelete = result.rows
+      .filter(row => row.doc) // Make sure we have a document
+      .map(row => ({
+        ...row.doc,
+        _deleted: true, // Mark for deletion
+      }));
+
+    if (docsToDelete.length > 0) {
+      // Perform bulk delete operation
+      await db.bulkDocs(docsToDelete);
+    }
+
+    return true;
+  } catch (error: any) {
+    console.error('Error deleting entire trip:', error);
+    handleDatabaseError(error);
+    throw error;
+  }
 } 
