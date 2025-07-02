@@ -60,7 +60,7 @@ export function useTimelineLayout(
   container: ShallowRef<HTMLDivElement | null>,
 ) {
   const dayWidth = ref(120);
-  const zoomLevel = useLocalStorage<ZoomLevel>('trip-planner-zoom', 'fit');
+  const zoomLevel = useLocalStorage<ZoomLevel>('travel-timeline-zoom', 'fit');
   const isMaxZoom = computed(() => zoomLevel.value === widthsOfDay.length - 1);
   const isMinZoom = computed(() => zoomLevel.value === 0);
   const isFitZoom = computed(() => zoomLevel.value === 'fit');

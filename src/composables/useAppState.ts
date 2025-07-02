@@ -18,7 +18,7 @@ import {
   updateTrip as dbUpdateTrip,
   validateStepLocationReferences,
 } from '../utils/database';
-import {DAY_24_HRS, formatDurationDays, formatISOWithTZ, getDayBeginTimestamp} from '../utils/datetime';
+import {convertDateToYM, DAY_24_HRS, getDayBeginTimestamp} from '../utils/datetime';
 
 const error = ref<string | null>(null);
 
@@ -33,9 +33,9 @@ const currentTripId = ref<string | null>(null);
 const deviceId = ref<string>(getOrCreateDeviceId());
 
 // For title
-const tripPlaces = ref('');
-const tripMonth = ref('');
-const tripDuration = ref('');
+const tripPlaces = ref<string[]>([]);
+const tripMonth = ref<number[][]>([]);
+const tripDuration = ref(0);
 
 // Loading states
 const isLoading = ref(false);
@@ -397,7 +397,7 @@ export function useAppState() {
       const newTripId = generateTripId();
 
       // Create the trip document in PouchDB
-      await dbCreateTrip(deviceId.value, newTripId, '', '', '');
+      await dbCreateTrip(deviceId.value, newTripId);
 
       // Update app state
       currentTripId.value = newTripId;
@@ -491,37 +491,34 @@ export function useAppState() {
 
   // Update app and document titles
   watchEffect(() => {
-    if (sortedSteps.value.length > 0) {
-      const startTimezone = locations.value[sortedSteps.value[0].startLocationId].timezone;
-      const start = getDayBeginTimestamp(sortedSteps.value[0].startTimestamp, startTimezone);
-
-      const finishLocationId = sortedSteps.value[sortedSteps.value.length - 1]?.finishLocationId;
-      const finishTimezone = finishLocationId
-        ? locations.value[finishLocationId].timezone
-        : 0;
-      let finish = getDayBeginTimestamp(
-        sortedSteps.value[sortedSteps.value.length - 1].finishTimestamp,
-        finishTimezone,
-      );
-      finish += DAY_24_HRS;
-
-      tripDuration.value = formatDurationDays(
-        formatISOWithTZ(start, startTimezone),
-        formatISOWithTZ(finish, finishTimezone),
-      );
-    } else {
-      tripDuration.value = '';
+    if (sortedSteps.value.length === 0) {
+      tripPlaces.value = [];
+      tripMonth.value = [];
+      tripDuration.value = 0;
+      return;
     }
+    const firstStep = sortedSteps.value[0];
+    const lastStep = sortedSteps.value[sortedSteps.value.length - 1];
 
-    const places = new Set();
+    const startLocationId = firstStep.startLocationId;
+    const startTimezone = locations.value[firstStep.startLocationId].timezone;
+    const start = getDayBeginTimestamp(firstStep.startTimestamp, startTimezone);
+
+    const finishLocationId = lastStep.finishLocationId;
+    const finishTimezone = finishLocationId
+      ? locations.value[finishLocationId].timezone
+      : 0;
+    let finish = getDayBeginTimestamp(lastStep.finishTimestamp, finishTimezone);
+    finish += DAY_24_HRS;
+
+    tripDuration.value = Math.floor((finish - start) / DAY_24_HRS);
+
+    const places: Set<string> = new Set();
     const months: Set<string> = new Set();
 
-    const startLocationId = sortedSteps.value[0]?.startLocationId;
-    if (startLocationId) {
-      const startLocation = locations.value[startLocationId];
-      if (startLocation) {
-        places.add(startLocation.name);
-      }
+    const startLocation = locations.value[startLocationId];
+    if (startLocation) {
+      places.add(startLocation.name);
     }
     sortedSteps.value.forEach((step) => {
       months.add(step.startDate.substring(0, 7));
@@ -533,7 +530,6 @@ export function useAppState() {
         }
       }
     });
-    const finishLocationId = sortedSteps.value[sortedSteps.value.length - 1]?.finishLocationId;
     if (finishLocationId) {
       const finishLocation = locations.value[finishLocationId];
       if (finishLocation) {
@@ -541,36 +537,13 @@ export function useAppState() {
       }
     }
 
-    tripPlaces.value = Array.from(places).join('&thinsp;—&thinsp;');
+    tripPlaces.value = Array.from(places);
 
     const monthsUniq: string[] = Array.from(months).sort();
-
-    if (monthsUniq.length === 1) {
-      const [y, m] = monthsUniq[0].split('-');
-      const d = new Date(parseInt(y), parseInt(m) - 1, 1);
-      tripMonth.value = d.toLocaleDateString('en', {month: 'long', year: 'numeric'});
-    } else if (monthsUniq.length > 1) {
-      const first = monthsUniq[0];
-      const last = monthsUniq[monthsUniq.length - 1];
-
-      const [firstYear, firstMonth] = first.split('-');
-      const [lastYear, lastMonth] = last.split('-');
-
-      const firstDate = new Date(parseInt(firstYear), parseInt(firstMonth) - 1, 1);
-      const lastDate = new Date(parseInt(lastYear), parseInt(lastMonth) - 1, 1);
-
-      if (firstYear === lastYear) {
-        // Same year: "January — March 2024"
-        const firstMonthName = firstDate.toLocaleDateString('en', {month: 'long'});
-        const lastMonthName = lastDate.toLocaleDateString('en', {month: 'long'});
-        tripMonth.value = `${firstMonthName}&thinsp;—&thinsp;${lastMonthName} ${firstYear}`;
-      } else {
-        // Different years: "December 2023 — February 2024"
-        const firstMonthYear = firstDate.toLocaleDateString('en', {month: 'long', year: 'numeric'});
-        const lastMonthYear = lastDate.toLocaleDateString('en', {month: 'long', year: 'numeric'});
-        tripMonth.value = `${firstMonthYear}&thinsp;—&thinsp;${lastMonthYear}`;
-      }
-    }
+    tripMonth.value = [
+      convertDateToYM(monthsUniq[0]),
+      convertDateToYM(monthsUniq[monthsUniq.length - 1]),
+    ];
   });
 
   return {

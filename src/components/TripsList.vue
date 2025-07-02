@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {useAppState} from '../composables/useAppState';
 import type {Trip} from '../types';
+import {convertYMRangeToMonths} from '../utils/datetime.ts';
 
 const {allTrips, currentTripId, switchToTrip, isLoading} = useAppState();
 
@@ -33,12 +34,13 @@ const formatTime = (timestamp: number) => {
 };
 
 const getTripTitle = (trip: Trip & { id: string }): string => {
-  return trip.places || 'Trip';
+  return trip.places.join('&thinsp;—&thinsp;') || 'New Trip';
 };
 
 const getTripSubtitle = (trip: Trip & { id: string }): string => {
   if (trip.duration && trip.month) {
-    return `${trip.duration} in ${trip.month}`;
+    const months = convertYMRangeToMonths(trip.month, {dash: '–', space: '&thinsp;'});
+    return `${trip.duration} ${trip.duration > 1 ? 'days' : 'day'} in ${months}`;
   }
   return '';
 };
@@ -76,9 +78,6 @@ const getTripSubtitle = (trip: Trip & { id: string }): string => {
 </template>
 
 <style scoped>
-.trips-list {
-}
-
 .loading, .empty-state {
   padding: 1rem 0;
   color: var(--color-text-muted);
@@ -104,7 +103,6 @@ const getTripSubtitle = (trip: Trip & { id: string }): string => {
 
 .trip-item:hover {
   border-color: var(--color-move-rectangle-border);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   background: var(--color-hover);
 }
 

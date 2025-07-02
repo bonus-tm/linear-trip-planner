@@ -3,7 +3,6 @@ import PouchDBFind from 'pouchdb-find';
 import type {Location, LocationDocument, Step, StepDocument, Trip, TripDocument} from '../types';
 import {createLocationDocId, createStepDocId, createTripDocId} from './documentIds';
 import {generateLocationId, generateStepId} from './ids';
-import {sortByMonthYear} from './datetime.ts';
 
 // Database configuration
 export const DB_NAME = 'timeline-data';
@@ -424,9 +423,9 @@ export async function getSteps(deviceId: string, tripId: string): Promise<Step[]
 export async function createTrip(
   deviceId: string,
   tripId: string,
-  places: string = '',
-  month: string = '',
-  duration: string = '',
+  places: string[] = [],
+  month: number[][] = [],
+  duration: number = 0,
 ): Promise<boolean> {
   const db = getDatabase();
 
@@ -610,10 +609,15 @@ export async function getAllTrips(deviceId: string): Promise<Array<Trip & { id: 
       })
       // Sort by trip's start month, then by updated_at in descending order (most recent first)
       .sort((a, b) => {
-        const byMonth = sortByMonthYear(a.month, b.month);
-        return byMonth === 0
-          ? b.updated_at - a.updated_at
-          : byMonth;
+        const byYear = (b.month[0]?.[0] ?? 0) - (a.month[0]?.[0] ?? 0);
+        const byMonth = (b.month[0]?.[1] ?? 0) - (a.month[0]?.[1] ?? 0);
+        if (byYear !== 0) {
+          return byYear;
+        } else if (byMonth !== 0) {
+          return byMonth;
+        } else {
+          return b.updated_at - a.updated_at;
+        }
       });
   } catch (error: any) {
     console.error('Error getting all trips:', error);

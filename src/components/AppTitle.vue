@@ -1,32 +1,38 @@
 <script setup lang="ts">
-import {watchEffect} from 'vue';
+import {computed, watchEffect} from 'vue';
 import {useAppState} from '../composables/useAppState';
+import {convertYMRangeToMonths} from '../utils/datetime';
 
 const {tripMonth, tripPlaces, tripDuration} = useAppState();
 
 const defaultAppName = 'Travel Timeline';
+const showDefault = computed(() => {
+  return tripPlaces.value.length === 0 ||
+    tripMonth.value.length === 0 ||
+    tripDuration.value === 0
+})
 
 watchEffect(() => {
-  if (tripPlaces.value && tripMonth.value) {
-    document.title = `${tripPlaces.value}, ${tripMonth.value} | ${defaultAppName}`
-      .replaceAll('&thinsp;', '');
-  } else {
-    document.title = defaultAppName;
+  let title = defaultAppName;
+  if (tripPlaces.value.length > 0 && tripMonth.value.length > 0) {
+    const months = convertYMRangeToMonths(tripMonth.value, {dash: '–', space: ''});
+    title = `${tripPlaces.value.join('–')}, ${months} | ${defaultAppName}`;
   }
+  document.title = title;
 });
 </script>
 
 <template>
-  <template v-if="tripPlaces && tripMonth && tripDuration">
-    <h1 v-html="tripPlaces"/>
-    <h2>
-      <span class="days">{{ tripDuration }} in </span>
-      <span v-html="tripMonth"/>
-    </h2>
-  </template>
-  <h1 v-else>
+  <h1 v-if="showDefault">
     {{ defaultAppName }}
   </h1>
+  <template v-else>
+    <h1 v-html="tripPlaces.join('&thinsp;—&thinsp;')"/>
+    <h2>
+      <span class="days">{{ tripDuration }} {{ tripDuration > 1 ? 'days' : 'day'}} in </span>
+      <span v-html="convertYMRangeToMonths(tripMonth, {space:'&thinsp;'})"/>
+    </h2>
+  </template>
 </template>
 
 <style scoped>

@@ -82,7 +82,7 @@ export function formatDurationDays(beginDate: string, endDate: string) {
 
   // Calculate difference in milliseconds and convert to days
   const delta = end.getTime() - begin.getTime();
-  const days = Math.floor(delta / (1000 * 60 * 60 * 24));
+  const days = Math.floor(delta / DAY_24_HRS);
 
   // Use Intl.DurationFormat to format the duration
   // @ts-ignore
@@ -127,49 +127,61 @@ export function isWeekendDay(dateString: string) {
   return day === 0 || day === 6;
 }
 
+export function convertDateToYM(dateStr: string): number[] {
+  if (!dateStr) return [];
+  if (!dateStr.includes('-')) return [];
+  const [y, m] = dateStr.split('-');
+  return [parseInt(y), parseInt(m) - 1];
+}
+
+type ConvertRangeOptions = {
+  dash?: string;
+  space?: string;
+  locale?: string;
+}
+const defaultConvertRangeOptions: ConvertRangeOptions = {
+  dash: '—',
+  space: '',
+  locale: 'en-US',
+};
+
 /**
- * Sort
- * @param a {string} 'June 2025' or 'June—September 2025' or 'June 2025—July 2026'
- * @param b {string} same as ↑
- * @return {number} -1, 0 or 1
+ * Convert stored range to human readable
+ * @param range {number[][]} array of years and months (0-11), like [[y1, m1], [y2, m2]]
+ * @param options {ConvertRangeOptions}
+ * @return {string}
  */
-export function sortByMonthYear(a: string, b: string): number {
-  // Function to extract first month and year from different formats
-  const extractFirstMonthYear = (str: string) => {
-    if (str.includes('—')) {
-      const parts = str.split('—');
-      const firstPart = parts[0].trim();
-      
-      // Check if first part has year (M Y—M Y format) or not (M—M Y format)
-      if (firstPart.includes(' ')) {
-        // Format: "June 2025—July 2026"
-        return firstPart;
-      } else {
-        // Format: "June—September 2025"
-        // Extract year from the end of the string
-        const lastPart = parts[parts.length - 1].trim();
-        const yearMatch = lastPart.match(/\d{4}$/);
-        const year = yearMatch ? yearMatch[0] : '';
-        return `${firstPart} ${year}`;
-      }
-    } else {
-      // Format: "June 2025"
-      return str.trim();
-    }
-  };
-  
-  const aFirst = extractFirstMonthYear(a);
-  const bFirst = extractFirstMonthYear(b);
-  
-  // Parse month and year from strings like "June 2025"
-  const [monthA, yearA] = aFirst.split(' ');
-  const [monthB, yearB] = bFirst.split(' ');
-  
-  // Create Date objects using "1 Month Year" format
-  const dateA = new Date(`1 ${monthA} ${yearA}`);
-  const dateB = new Date(`1 ${monthB} ${yearB}`);
-  
-  // Sort descending (latest first): if a is later, it should come before b (negative result)
-  const diff = dateB.getTime() - dateA.getTime();
-  return diff > 0 ? 1 : diff < 0 ? -1 : 0;
+export function convertYMRangeToMonths(
+  range: number[][],
+  options: ConvertRangeOptions = {},
+): string {
+  if (range.length === 0) {
+    return '';
+  }
+
+  options = {...options, ...defaultConvertRangeOptions};
+
+  const [firstYear, firstMonth] = range[0];
+  const [lastYear, lastMonth] = range[1];
+
+  const sameYear = firstYear === lastYear;
+  const sameMonth = firstMonth === lastMonth;
+
+  const firstDate = new Date(firstYear, firstMonth, 1);
+  const lastDate = new Date(lastYear, lastMonth, 1);
+
+  if (sameYear && sameMonth) {
+    // Same year and month: "March 2024"
+    return firstDate.toLocaleDateString(options.locale, {month: 'long', year: 'numeric'});
+  } else if (sameYear) {
+    // Same year: "January — March 2024"
+    const firstMonthName = firstDate.toLocaleDateString(options.locale, {month: 'long'});
+    const lastMonthName = lastDate.toLocaleDateString(options.locale, {month: 'long'});
+    return `${firstMonthName}${options.space}${options.dash}${options.space}${lastMonthName} ${firstYear}`;
+  } else {
+    // Different years: "December 2023 — February 2024"
+    const firstMonthYear = firstDate.toLocaleDateString(options.locale, {month: 'long', year: 'numeric'});
+    const lastMonthYear = lastDate.toLocaleDateString(options.locale, {month: 'long', year: 'numeric'});
+    return `${firstMonthYear}${options.space}${options.dash}${options.space}${lastMonthYear}`;
+  }
 }

@@ -7,7 +7,7 @@ import AppTitle from './components/AppTitle.vue';
 import LocationsTable from './components/locations/LocationsTable.vue';
 import StepsTable from './components/steps/StepsTable.vue';
 import Timeline from './components/timeline/Timeline.vue';
-import ResetButton from './components/ResetButton.vue';
+import NewTripButton from './components/NewTripButton.vue';
 import LinkToGithub from './components/LinkToGithub.vue';
 import TripsList from './components/TripsList.vue';
 
@@ -39,11 +39,8 @@ const version = ref(__APP_VERSION__);
 <template>
   <div class="app-container">
     <nav>
-      <ResetButton/>
-      <div class="trips">
-        <TripsList/>
-      </div>
-
+      <NewTripButton/>
+      <TripsList/>
       <footer>
         <span>2025 bTM,</span>
         <LinkToGithub/>

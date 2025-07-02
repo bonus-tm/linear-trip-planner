@@ -19,8 +19,9 @@ const db = new PouchDB('timeline-data', {
 
 ### localStorage Retention
 Only these items remain in localStorage:
-- **Key**: `"tavel-timeline-zoom"` → **Value**: ZoomLevel ('fit' | number)  
-- **Key**: `"tavel-timeline-device-id"` → **Value**: string (generated UUID)
+- **Key**: `"travel-timeline-zoom"` → **Value**: ZoomLevel ('fit' | number)  
+- **Key**: `"travel-timeline-device-id"` → **Value**: string (generated UUID)
+- **Key**: `"travel-timeline-trip-id"` → **Value**: string (generated UUID)
 
 ### Type System Migration
 Application types have been updated for PouchDB compatibility:
@@ -39,7 +40,7 @@ New PouchDB document types added:
 
 #### Device ID Format
 - **Generation**: `crypto.randomUUID()` exclusively
-- **Storage**: localStorage with key `"tavel-timeline-device-id"`
+- **Storage**: localStorage with key `"travel-timeline-device-id"`
 - **Format**: Standard UUID (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
 
 #### Trip ID Format  
@@ -137,9 +138,9 @@ interface TripDocument {
   created_at: number; // timestamp
   updated_at: number; // timestamp  
   deleted_at?: number; // timestamp, optional (soft delete)
-  places: string;
-  month: string;
-  duration: string;
+  places: string[]; // Array of location names
+  month: number[][]; // Array of [year, month] arrays for trip date range
+  duration: number; // duration of trip in days
 }
 ```
 
@@ -199,7 +200,7 @@ ID generation and document management is split across utility files:
 ```typescript
 // Located in src/utils/ids.ts
 function getOrCreateDeviceId(): string {
-  const storageKey = 'tavel-timeline-device-id';
+  const storageKey = 'travel-timeline-device-id';
   let deviceId = localStorage.getItem(storageKey);
   
   if (!deviceId) {
@@ -269,15 +270,36 @@ Trip and device IDs are managed in the app state composable:
 // Located in src/composables/useAppState.ts
 const currentTripId = ref<string | null>(null);
 const deviceId = ref<string>(getOrCreateDeviceId());
+const currentTrip = ref<Trip | null>(null);
+const allTrips = ref<Array<Trip & { id: string }>>([]);
 
-// Function to create new trip
-const createNewTrip = () => {
+// Auto-computed trip metadata (reactive)
+const tripPlaces = ref<string[]>([]);
+const tripMonth = ref<number[][]>([]);
+const tripDuration = ref(0);
+
+// Functions for trip management
+const createNewTrip = async (): Promise<string> => {
   const newTripId = generateTripId();
+  await dbCreateTrip(deviceId.value, newTripId);
   currentTripId.value = newTripId;
-  // Clear current data for new trip
+  localStorage.setItem('travel-timeline-trip-id', newTripId);
   locations.value = {};
   steps.value = [];
+  await loadTripData();
+  await loadAllTrips();
   return newTripId;
+};
+
+const switchToTrip = async (tripId: string): Promise<void> => {
+  currentTripId.value = tripId;
+  localStorage.setItem('travel-timeline-trip-id', tripId);
+  await loadTripData();
+};
+
+const loadAllTrips = async (): Promise<void> => {
+  const trips = await dbGetAllTrips(deviceId.value);
+  allTrips.value = trips;
 };
 ```
 
@@ -332,18 +354,20 @@ interface DatabaseOperations {
   getSteps(deviceId: string, tripId: string): Promise<Step[]>;
   
   // Trip operations
-  createTrip(deviceId: string, tripId: string, places: string, month: string, duration: string): Promise<boolean>;
-  updateTrip(deviceId: string, tripId: string, data: Partial<{ places: string; month: string; duration: string }>): Promise<boolean>;
+  createTrip(deviceId: string, tripId: string, places: string[], month: number[][], duration: number): Promise<boolean>;
+  updateTrip(deviceId: string, tripId: string, data: Partial<Pick<Trip, 'places' | 'month' | 'duration'>>): Promise<boolean>;
   deleteTrip(deviceId: string, tripId: string): Promise<boolean>; // Soft delete
-  getTrip(deviceId: string, tripId: string): Promise<TripInfo | null>;
+  getTrip(deviceId: string, tripId: string): Promise<Trip | null>;
+  getAllTrips(deviceId: string): Promise<Array<Trip & { id: string }>>;
   
   // Batch operations
-  loadTripData(deviceId: string, tripId: string): Promise<{ locations: Location[]; steps: Step[]; trip: TripInfo }>;
+  loadTripData(deviceId: string, tripId: string): Promise<{ trip: Trip | null; locations: Location[]; steps: Step[] }>;
   
   // Reference utilities  
   resolveLocationReferences(steps: Step[], locations: Location[]): Step[]; // Convert location UUIDs to location objects for app use
   createLocationReferences(steps: Step[]): Step[]; // Convert location objects to location UUIDs for storage
-  getLocationDocIdsFromStep(stepDocument: StepDocument): string[]; // Get full location document IDs for a step
+  getLocationDocIdsFromStep(deviceId: string, tripId: string, step: Step): string[]; // Get full location document IDs for a step
+  validateStepLocationReferences(deviceId: string, tripId: string, step: Step): Promise<boolean>; // Validate step location references
 }
 ```
 
@@ -528,9 +552,9 @@ Trips are stored as PouchDB documents with the following structure:
   "trip_id": "trip-uuid",
   "created_at": 1699123456789,
   "updated_at": 1699123456789,
-  "places": "Paris—London—Tokyo",
-  "month": "July 2024",
-  "duration": "14 days"
+  "places": ["Paris", "London", "Tokyo"],
+  "month": [[2024, 7], [2024, 7]],
+  "duration": 14
 }
 ```
 
@@ -545,9 +569,9 @@ Trip deletion is implemented as a soft delete, preserving trip data:
   "created_at": 1699123456789,
   "updated_at": 1699234567890,
   "deleted_at": 1699234567890,
-  "places": "Deleted Trip",
-  "month": "",
-  "duration": ""
+  "places": ["Deleted Trip"],
+  "month": [],
+  "duration": 0
 }
 ```
 
@@ -583,6 +607,42 @@ const loadTripData = async (): Promise<{
 - **Trip Context**: All location and step operations now work within trip context
 - **Async Compatibility**: All trip operations compatible with existing async operation patterns
 
+### Multiple Trip Management
+✅ **Phase 4.4 Multiple Trip Support - COMPLETED**
+- **getAllTrips**: Implemented to load all trips for a device with proper sorting
+- **switchToTrip**: Implemented to switch between existing trips
+- **Trip List State**: `allTrips` reactive state maintains list of all available trips
+- **Trip Persistence**: Current trip ID persisted in localStorage for session continuity
+
+### Trip Sorting Algorithm
+The `getAllTrips` function returns trips sorted by:
+1. **Primary**: Trip start year (most recent first)
+2. **Secondary**: Trip start month within same year (most recent first)  
+3. **Tertiary**: `updated_at` timestamp (most recent first)
+
+```typescript
+.sort((a, b) => {
+  const byYear = (b.month[0]?.[0] ?? 0) - (a.month[0]?.[0] ?? 0);
+  const byMonth = (b.month[0]?.[1] ?? 0) - (a.month[0]?.[1] ?? 0);
+  if (byYear !== 0) {
+    return byYear;
+  } else if (byMonth !== 0) {
+    return byMonth;
+  } else {
+    return b.updated_at - a.updated_at;
+  }
+});
+```
+
+### Automatic Trip Metadata Computation
+Trip metadata is automatically computed and updated whenever steps change:
+```typescript
+// Reactive watchEffect automatically computes:
+tripPlaces.value = Array.from(uniqueLocationNames); // All locations visited
+tripMonth.value = [startYearMonth, endYearMonth]; // Date range as [year, month] arrays
+tripDuration.value = Math.floor((finishTimestamp - startTimestamp) / DAY_24_HRS); // Duration in days
+```
+
 ### Data Isolation
 - **Device Isolation**: Each device maintains separate trip data using device UUID
 - **Trip Isolation**: Each trip maintains separate data scope using trip UUID
@@ -592,17 +652,78 @@ const loadTripData = async (): Promise<{
 ## Error Handling Strategy
 
 ### Error Types
+The following error classes are implemented in `src/utils/database.ts`:
 - **DatabaseConnectionError**: PouchDB connection/initialization failures
 - **DocumentNotFoundError**: Requested document doesn't exist
 - **ConflictError**: Document update conflicts (concurrent updates)
 - **ValidationError**: Invalid data format or constraints
 - **QuotaExceededError**: Storage quota exceeded
 
+### Error Handling Implementation
+```typescript
+export class DatabaseConnectionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DatabaseConnectionError';
+  }
+}
+
+export class DocumentNotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DocumentNotFoundError';
+  }
+}
+
+export class ConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ConflictError';
+  }
+}
+
+export class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}
+
+export class QuotaExceededError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'QuotaExceededError';
+  }
+}
+```
+
 ### Error Recovery
-- Retry mechanism for transient errors
-- Conflict resolution for concurrent updates
-- Graceful degradation when database unavailable
-- User-friendly error messages
+- **Retry mechanism for transient errors**: Implemented with exponential backoff
+- **Conflict resolution for concurrent updates**: Trip updates retry up to 3 times on 409 conflicts
+- **Graceful degradation when database unavailable**: App continues with current state
+- **User-friendly error messages**: Displayed via reactive `error` state in useAppState
+
+### Conflict Resolution Implementation
+Trip updates include automatic retry logic for concurrent update conflicts:
+```typescript
+// Retry up to 3 times on conflicts
+let retries = 3;
+while (retries > 0) {
+  try {
+    // ... update logic
+    await db.put(updatedDocument);
+    return true;
+  } catch (error) {
+    if (error.status === 409 && retries > 1) {
+      retries--;
+      // Brief delay before retry to allow other operations to complete
+      await new Promise(resolve => setTimeout(resolve, 10 + Math.random() * 20));
+      continue;
+    }
+    throw error;
+  }
+}
+```
 
 ## Migration Considerations
 
