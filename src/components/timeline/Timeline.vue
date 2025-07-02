@@ -76,7 +76,7 @@ const {layout, dayWidth, isFitZoom, isMaxZoom, isMinZoom, zoomIn, zoomOut, zoomT
 <style scoped>
 .no-data-message {
   margin: 0;
-  padding: 1rem;
+  padding: 3rem;
   color: var(--color-secondary);
   font-style: italic;
   text-align: center;
@@ -86,7 +86,6 @@ const {layout, dayWidth, isFitZoom, isMaxZoom, isMinZoom, zoomIn, zoomOut, zoomT
 .timeline-container {
   position: relative;
   background-color: var(--color-surface);
-  border-bottom: thin solid var(--color-border);
 
   .zoom-controls {
     position: absolute;

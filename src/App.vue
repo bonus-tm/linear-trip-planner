@@ -49,10 +49,14 @@ const version = ref(__APP_VERSION__);
     </nav>
 
     <main>
-      <AppTitle/>
-      <Timeline/>
-      <StepsTable/>
-      <LocationsTable/>
+      <div class="timeline">
+        <AppTitle/>
+        <Timeline/>
+      </div>
+      <div class="cards">
+        <StepsTable/>
+        <LocationsTable/>
+      </div>
     </main>
 
     <Toast
@@ -72,7 +76,18 @@ const version = ref(__APP_VERSION__);
 }
 
 main {
-  position: relative;
+  display: flex;
+  flex-direction: column;
+
+  .timeline {
+    position: relative;
+    border-bottom: thin solid var(--color-border);
+  }
+
+  .cards {
+    background-color: var(--color-background);
+    flex-grow: 1;
+  }
 }
 
 nav {

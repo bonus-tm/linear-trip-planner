@@ -195,7 +195,6 @@ const handleModalClose = () => {
 <style scoped>
 .steps-cards {
   padding: 2rem 1rem 1rem;
-  background-color: var(--color-background);
 }
 
 .cards-header {

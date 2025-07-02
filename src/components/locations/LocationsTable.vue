@@ -151,7 +151,6 @@ const handleLocationDelete = async (locationId: string) => {
 <style scoped>
 .locations-cards {
   padding: 1rem;
-  background-color: var(--color-background);
 }
 
 .cards-header {
