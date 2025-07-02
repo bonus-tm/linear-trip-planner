@@ -2,17 +2,17 @@
 import {useTemplateRef} from 'vue';
 import Button from 'primevue/button';
 import ButtonGroup from 'primevue/buttongroup';
-import {useAppState} from '../../composables/useAppState.ts';
-import {useTimelineLayout} from '../../composables/useTimelineLayout.ts';
+import {useAppState} from '../../composables/useAppState';
+import {useTimelineLayout} from '../../composables/useTimelineLayout';
 import TimelineLocation from './TimelineLocation.vue';
 import MoveBlock from '../steps/MoveBlock.vue';
 
 const timelineContainer = useTemplateRef('wrapper');
 
-const {locations, steps} = useAppState();
+const {locations, sortedSteps} = useAppState();
 const {layout, dayWidth, isFitZoom, isMaxZoom, isMinZoom, zoomIn, zoomOut, zoomToFit} = useTimelineLayout(
   locations,
-  steps,
+  sortedSteps,
   timelineContainer,
 );
 </script>
