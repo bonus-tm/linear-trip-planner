@@ -41,6 +41,9 @@ const tripDuration = ref(0);
 // Loading states
 const isLoading = ref(false);
 
+// Unsaved trip tracking
+const isUnsavedTrip = ref(false);
+
 export function useAppState() {
   // Computed values
   const locationsList = computed(() => Object.values(locations.value));
@@ -49,6 +52,26 @@ export function useAppState() {
       return a.startTimestamp - b.startTimestamp;
     }),
   );
+
+  // Computed for trips list including unsaved trip
+  const allTripsWithUnsaved = computed(() => {
+    const trips = [...allTrips.value];
+    
+    // Add unsaved trip at the beginning if it exists
+    if (isUnsavedTrip.value && currentTripId.value) {
+      const unsavedTrip = {
+        id: currentTripId.value,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        places: tripPlaces.value.length > 0 ? tripPlaces.value : [],
+        month: tripMonth.value.length > 0 ? tripMonth.value : [],
+        duration: tripDuration.value || 0,
+      };
+      trips.unshift(unsavedTrip);
+    }
+    
+    return trips;
+  });
 
   // Initialize database and load data
   const initState = async () => {
@@ -123,6 +146,7 @@ export function useAppState() {
       locations.value = {};
       steps.value = [];
       currentTrip.value = null;
+      isUnsavedTrip.value = false;
       return;
     }
 
@@ -139,10 +163,14 @@ export function useAppState() {
       locations.value = locationsMap;
       steps.value = data.steps;
       currentTrip.value = data.trip;
+      // If we successfully loaded trip data, it's not unsaved
+      isUnsavedTrip.value = false;
       error.value = null;
     } catch (err) {
       console.error('Failed to load trip data:', err);
       error.value = 'Failed to load trip data';
+      // If loading fails, we might be dealing with an unsaved trip
+      // Keep the current unsaved state as is
     } finally {
       isLoading.value = false;
     }
@@ -160,10 +188,33 @@ export function useAppState() {
     }
   };
 
+  // Helper function to save unsaved trip to database
+  const saveUnsavedTripToDb = async (): Promise<boolean> => {
+    if (!isUnsavedTrip.value || !currentTripId.value) {
+      return true; // Nothing to save
+    }
+
+    try {
+      await dbCreateTrip(deviceId.value, currentTripId.value);
+      isUnsavedTrip.value = false;
+      await loadAllTrips(); // Refresh trips list
+      return true;
+    } catch (err) {
+      console.error('Failed to save unsaved trip:', err);
+      error.value = 'Failed to save trip';
+      return false;
+    }
+  };
+
   // Switch to a specific trip
   const switchToTrip = async (tripId: string): Promise<void> => {
     if (currentTripId.value === tripId) {
       return; // Already on this trip
+    }
+
+    // If switching away from an unsaved trip, mark it as no longer unsaved
+    if (isUnsavedTrip.value) {
+      isUnsavedTrip.value = false;
     }
 
     currentTripId.value = tripId;
@@ -190,6 +241,13 @@ export function useAppState() {
 
     try {
       isLoading.value = true;
+
+      // Save unsaved trip to database first if needed
+      const tripSaved = await saveUnsavedTripToDb();
+      if (!tripSaved) {
+        return false;
+      }
+
       const location = await dbAddLocation(deviceId.value, currentTripId.value, locationData);
 
       // Update reactive state
@@ -278,6 +336,12 @@ export function useAppState() {
 
     try {
       isLoading.value = true;
+
+      // Save unsaved trip to database first if needed
+      const tripSaved = await saveUnsavedTripToDb();
+      if (!tripSaved) {
+        return false;
+      }
 
       // Validate location references exist
       const isValid = await validateStepLocationReferences(deviceId.value, currentTripId.value, step as Step);
@@ -393,12 +457,14 @@ export function useAppState() {
 
   // Trip operations
   const createNewTrip = async (): Promise<string> => {
+    // Prevent creating new trip when one is unsaved
+    if (isUnsavedTrip.value) {
+      return currentTripId.value!; // Return current unsaved trip ID
+    }
+
     try {
       isLoading.value = true;
       const newTripId = generateTripId();
-
-      // Create the trip document in PouchDB
-      await dbCreateTrip(deviceId.value, newTripId);
 
       // Update app state
       currentTripId.value = newTripId;
@@ -408,12 +474,10 @@ export function useAppState() {
       // Clear current locations and steps for new trip
       locations.value = {};
       steps.value = [];
+      currentTrip.value = null;
 
-      // Load the new trip data (should be empty except for trip info)
-      await loadTripData();
-
-      // Refresh the trips list to include the new trip
-      await loadAllTrips();
+      // Mark as unsaved (DO NOT save to PouchDB yet)
+      isUnsavedTrip.value = true;
 
       error.value = null;
       return newTripId;
@@ -591,10 +655,12 @@ export function useAppState() {
     tripDuration,
     tripPlaces,
     tripMonth,
+    isUnsavedTrip,
 
     // Computed
     locationsList,
     sortedSteps,
+    allTripsWithUnsaved,
 
     // Location operations
     addLocation,

@@ -37,11 +37,13 @@ watchEffect(() => {
 
 <style scoped>
 h1 {
-  margin: 0;
+  margin-block: 0 0.25em;
   padding: 0.75rem 10rem 0;
   text-align: center;
   transition: color 0.3s ease;
   background-color: var(--color-surface);
+  line-height: 1.1;
+  letter-spacing: -0.025em;
 }
 
 h2 {

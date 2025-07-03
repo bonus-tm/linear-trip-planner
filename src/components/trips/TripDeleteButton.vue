@@ -1,16 +1,17 @@
 <script lang="ts" setup>
 import Button from 'primevue/button';
 import {useConfirm} from 'primevue/useconfirm';
-import {useAppState} from '../composables/useAppState';
+import {useAppState} from '../../composables/useAppState.ts';
 
 const {
   deleteEntireTrip,
-  allTrips,
+  allTripsWithUnsaved,
   switchToTrip,
   currentTripId,
   currentTrip,
   isLoading,
   error,
+  isUnsavedTrip,
 } = useAppState();
 
 const confirm = useConfirm();
@@ -36,7 +37,7 @@ const handleDeleteTrip = () => {
 
         if (success) {
           // Find the first available trip that's not the current one
-          const availableTrips = allTrips.value.filter(trip => trip.id !== currentTripId.value);
+          const availableTrips = allTripsWithUnsaved.value.filter(trip => trip.id !== currentTripId.value);
 
           if (availableTrips.length > 0) {
             // Switch to the first available trip
@@ -59,6 +60,7 @@ const handleDeleteTrip = () => {
 <template>
   <div class="trip-delete-section">
     <Button
+      v-if="!isUnsavedTrip"
       :disabled="!currentTripId || isLoading"
       :loading="isLoading"
       icon="pi pi-trash"

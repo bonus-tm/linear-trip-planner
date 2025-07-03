@@ -8,10 +8,10 @@ import AppTitle from './components/AppTitle.vue';
 import LocationsTable from './components/locations/LocationsTable.vue';
 import StepsTable from './components/steps/StepsTable.vue';
 import Timeline from './components/timeline/Timeline.vue';
-import NewTripButton from './components/NewTripButton.vue';
+import NewTripButton from './components/trips/NewTripButton.vue';
 import LinkToGithub from './components/LinkToGithub.vue';
-import TripsList from './components/TripsList.vue';
-import TripDeleteButton from './components/TripDeleteButton.vue';
+import TripsList from './components/trips/TripsList.vue';
+import TripDeleteButton from './components/trips/TripDeleteButton.vue';
 
 const {error, initState} = useAppState();
 const toast = useToast();

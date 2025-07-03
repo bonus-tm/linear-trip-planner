@@ -1,9 +1,9 @@
 <script lang="ts" setup>
-import {useAppState} from '../composables/useAppState';
-import type {Trip} from '../types';
-import {convertYMRangeToMonths} from '../utils/datetime.ts';
+import {useAppState} from '../../composables/useAppState.ts';
+import type {Trip} from '../../types';
+import {convertYMRangeToMonths} from '../../utils/datetime.ts';
 
-const {allTrips, currentTripId, switchToTrip, isLoading} = useAppState();
+const {allTripsWithUnsaved, currentTripId, switchToTrip, isLoading} = useAppState();
 
 const handleTripClick = async (tripId: string) => {
   if (isLoading.value || tripId === currentTripId.value) {
@@ -52,13 +52,13 @@ const getTripSubtitle = (trip: Trip & { id: string }): string => {
       Loading trips...
     </div>
 
-    <div v-else-if="allTrips.length === 0" class="empty-state">
+    <div v-else-if="allTripsWithUnsaved.length === 0" class="empty-state">
       No trips yet
     </div>
 
     <div v-else class="trips">
       <div
-        v-for="trip in allTrips"
+        v-for="trip in allTripsWithUnsaved"
         :key="trip.id"
         class="trip-item"
         :class="{ 'current': trip.id === currentTripId }"
@@ -120,6 +120,7 @@ const getTripSubtitle = (trip: Trip & { id: string }): string => {
   margin: 0 0 0.125rem 0;
   font-size: 0.875rem;
   font-weight: 500;
+  letter-spacing: -0.025em;
   color: var(--color-text);
   overflow: hidden;
   text-overflow: ellipsis;

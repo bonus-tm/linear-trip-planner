@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import Button from 'primevue/button';
-import {useAppState} from '../composables/useAppState';
+import {useAppState} from '../../composables/useAppState';
 import {ref} from 'vue';
 
 const {createNewTrip, isLoading} = useAppState();
@@ -29,7 +29,8 @@ const handleNewTravel = async () => {
     class="new-trip-button"
     icon="pi pi-pen-to-square"
     label="New trip"
-    severity="secondary"
+    severity="contrast"
+    outlined
     :loading="isLoading || isResetting"
     @click="handleNewTravel"
   />
