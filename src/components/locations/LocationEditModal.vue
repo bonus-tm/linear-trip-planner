@@ -18,7 +18,7 @@ interface Emits {
 
   (
     e: 'save',
-    location: Location | { name: string; timezone: number; coordinates?: { lat: number; lng: number } },
+    location: Location | { name: string; timezone: number; coordinates?: { lat: number; lng: number } | null },
   ): void;
 
   (e: 'delete', locationId: string): void;
@@ -61,7 +61,9 @@ watch(() => props.visible, (newValue) => {
       // Initialize form with location data
       editForm.value = {
         name: props.location.name,
-        coordinatesString: `${props.location.coordinates.lat}, ${props.location.coordinates.lng}`,
+        coordinatesString: props.location.coordinates
+          ? `${props.location.coordinates.lat}, ${props.location.coordinates.lng}`
+          : '',
         timezone: props.location.timezone,
       };
     }
@@ -117,53 +119,62 @@ const validateAndSave = () => {
         coordinates: {lat, lng},
       });
     } else {
-      // No coordinates provided for new location
+      // No coordinates provided for new location - set to null
       emit('save', {
         name: editForm.value.name.trim(),
         timezone: editForm.value.timezone,
+        coordinates: null,
       });
     }
   } else {
-    // For editing, if coordinates are empty, default to "0, 0"
+    // For editing, handle empty coordinates by setting to null
     if (!editForm.value.coordinatesString.trim()) {
-      editForm.value.coordinatesString = '0, 0';
+      // Create updated location object with null coordinates
+      const updatedLocation: Location = {
+        id: props.location!.id, // Keep the original ID
+        name: editForm.value.name.trim(),
+        coordinates: null,
+        timezone: editForm.value.timezone,
+      };
+
+      emit('save', updatedLocation);
+    } else {
+      // Parse coordinates
+      const parts = editForm.value.coordinatesString.split(',').map(part => part.trim());
+      if (parts.length !== 2) {
+        error.value = 'Coordinates must be in format "latitude, longitude"';
+        return;
+      }
+
+      const lat = parseFloat(parts[0]);
+      const lng = parseFloat(parts[1]);
+
+      if (isNaN(lat) || isNaN(lng)) {
+        error.value = 'Coordinates must be valid numbers';
+        return;
+      }
+
+      // Validate coordinate ranges
+      if (lat < -90 || lat > 90) {
+        error.value = 'Latitude must be between -90 and 90';
+        return;
+      }
+
+      if (lng < -180 || lng > 180) {
+        error.value = 'Longitude must be between -180 and 180';
+        return;
+      }
+
+      // Create updated location object
+      const updatedLocation: Location = {
+        id: props.location!.id, // Keep the original ID
+        name: editForm.value.name.trim(),
+        coordinates: {lat, lng},
+        timezone: editForm.value.timezone,
+      };
+
+      emit('save', updatedLocation);
     }
-
-    // Parse coordinates
-    const parts = editForm.value.coordinatesString.split(',').map(part => part.trim());
-    if (parts.length !== 2) {
-      error.value = 'Coordinates must be in format "latitude, longitude"';
-      return;
-    }
-
-    const lat = parseFloat(parts[0]);
-    const lng = parseFloat(parts[1]);
-
-    if (isNaN(lat) || isNaN(lng)) {
-      error.value = 'Coordinates must be valid numbers';
-      return;
-    }
-
-    // Validate coordinate ranges
-    if (lat < -90 || lat > 90) {
-      error.value = 'Latitude must be between -90 and 90';
-      return;
-    }
-
-    if (lng < -180 || lng > 180) {
-      error.value = 'Longitude must be between -180 and 180';
-      return;
-    }
-
-    // Create updated location object
-    const updatedLocation: Location = {
-      id: props.location!.id, // Keep the original ID
-      name: editForm.value.name.trim(),
-      coordinates: {lat, lng},
-      timezone: editForm.value.timezone,
-    };
-
-    emit('save', updatedLocation);
   }
 
   localVisible.value = false;
@@ -218,10 +229,9 @@ const handleCancel = () => {
 
       <div class="form-field">
         <label for="coordinates">
-          Coordinates
-          {{ isCreating ? '(optional)' : '*' }}
+          Coordinates (optional)
           <a
-            v-if="!isCreating && location"
+            v-if="!isCreating && location && location.coordinates"
             :href="`https://www.google.com/maps/@${location.coordinates.lat},${location.coordinates.lng},11z`"
             class="map-link"
             rel="noopener noreferrer"

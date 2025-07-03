@@ -17,7 +17,9 @@ const addLocationDialogVisible = ref(false);
 const cardsData = computed(() =>
   locationsList.value.map(location => ({
     ...location,
-    coordinatesString: `${location.coordinates.lat}, ${location.coordinates.lng}`,
+    coordinatesString: location.coordinates
+      ? `${location.coordinates.lat}, ${location.coordinates.lng}`
+      : 'No coordinates',
   })),
 );
 
@@ -34,7 +36,7 @@ const showEditLocationDialog = (location: Location) => {
 const handleLocationSave = async (locationData: Location | {
   name: string;
   timezone: number;
-  coordinates?: { lat: number; lng: number }
+  coordinates?: { lat: number; lng: number } | null
 }) => {
   if ('id' in locationData) {
     // Editing existing location
@@ -47,7 +49,7 @@ const handleLocationSave = async (locationData: Location | {
     // Creating new location
     const success = await addLocation({
       name: locationData.name,
-      coordinates: locationData.coordinates || {lat: 0, lng: 0},
+      coordinates: locationData.coordinates || null,
       timezone: locationData.timezone,
     });
     if (success) {
@@ -70,11 +72,11 @@ const handleLocationDelete = async (locationId: string) => {
     <div class="cards-header">
       <h2>Locations</h2>
       <Button
+        :loading="isLoading"
         icon="pi pi-plus"
         label="Add Location"
         severity="secondary"
         size="small"
-        :loading="isLoading"
         @click="showAddLocationDialog"
       />
     </div>
@@ -91,11 +93,11 @@ const handleLocationDelete = async (locationId: string) => {
             <div class="location-name">{{ location.name }}</div>
             <div class="edit-button-container">
               <Button
+                :loading="isLoading"
                 icon="pi pi-pencil"
                 rounded
                 size="small"
                 text
-                :loading="isLoading"
                 @click="showEditLocationDialog(location)"
               />
             </div>
@@ -109,6 +111,7 @@ const handleLocationDelete = async (locationId: string) => {
             </div>
 
             <a
+              v-if="location.coordinates"
               :href="`https://www.google.com/maps/@${location.coordinates.lat},${location.coordinates.lng},11z`"
               class="map-link"
               rel="noopener noreferrer"
@@ -125,6 +128,9 @@ const handleLocationDelete = async (locationId: string) => {
                 {{ location.coordinates.lng >= 0 ? 'E' : 'W' }}
               </div>
             </a>
+            <div v-else class="no-coordinates">
+              Add coordinates for correct daylight
+            </div>
           </div>
         </template>
       </Card>
@@ -235,5 +241,12 @@ h2 {
     line-height: 1;
     align-self: baseline;
   }
+}
+
+.no-coordinates {
+  font-size: 0.75rem;
+  font-weight: 400;
+  font-style: italic;
+  opacity: 0.6;
 }
 </style> 

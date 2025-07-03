@@ -1,7 +1,7 @@
 export interface Location {
   id: string; // UUID string identifier for PouchDB compatibility
   name: string;
-  coordinates: { lat: number; lng: number };
+  coordinates: { lat: number; lng: number } | null;
   timezone: number; // -12 to +12 UTC offset
 }
 
@@ -118,7 +118,7 @@ export interface LocationDocument extends PouchDBMeta {
   trip_id: string; // UUID
   location_id: string; // UUID
   name: string;
-  coordinates: { lat: number; lng: number };
+  coordinates: { lat: number; lng: number } | null;
   timezone: number; // -12 to +12 UTC offset
   created_at: number; // timestamp
   updated_at: number; // timestamp

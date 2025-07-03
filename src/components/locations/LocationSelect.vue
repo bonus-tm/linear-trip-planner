@@ -28,11 +28,11 @@ const showLocationModal = ref(false);
 const handleLocationCreated = async (locationData: {
   name: string;
   timezone: number;
-  coordinates?: { lat: number; lng: number }
+  coordinates?: { lat: number; lng: number } | null
 }) => {
   const newLocation = {
     name: locationData.name,
-    coordinates: locationData.coordinates || {lat: 0, lng: 0},
+    coordinates: locationData.coordinates || null,
     timezone: locationData.timezone,
   };
 

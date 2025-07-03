@@ -278,12 +278,14 @@ export function useTimelineLayout(
           width: dayWidth.value,
           height: LOCATION_HEIGHT - 2,
         };
-        const daylight = calculateDaylight(
-          location.coordinates.lat,
-          location.coordinates.lng,
-          date,
-          location.timezone,
-        );
+        const daylight = location.coordinates
+          ? calculateDaylight(
+            location.coordinates.lat,
+            location.coordinates.lng,
+            date,
+            location.timezone,
+          )
+          : {sunrise: '06:00', sunset: '18:00', polar_night: false}; // Default daylight when no coordinates
         const daylightStyle = getDaylightStyle(daylight, dayWidth.value, LOCATION_HEIGHT - 2);
 
         locationTimeline.days.push({
